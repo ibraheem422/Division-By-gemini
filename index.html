@@ -1,0 +1,1153 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Long Division Practice App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .grid-cell-input {
+            width: 2.75rem !important; height: 2.75rem !important;
+            min-width: 2.75rem !important; min-height: 2.75rem !important;
+            text-align: center; font-family: 'JetBrains Mono', monospace;
+            font-weight: 700; font-size: 1.25rem;
+            background-color: #1e293b; color: #ffffff;
+            border: 2px solid #475569; border-radius: 0.5rem;
+            outline: none; transition: all 0.15s ease-in-out;
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 0; box-sizing: border-box;
+        }
+        .grid-cell-input:focus {
+            border-color: #3b82f6 !important; background-color: #0f172a !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+        }
+        .grid-cell-input.correct { border-color: #10b981 !important; background-color: #064e3b !important; color: #34d399 !important; }
+        .grid-cell-input.incorrect { border-color: #ef4444 !important; background-color: #7f1d1d !important; color: #fca5a5 !important; }
+        .grid-cell-input.hint-highlight { border-color: #f59e0b !important; background-color: #78350f !important; color: #fde047 !important; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.5); }
+        .cell-display {
+            width: 2.75rem !important; height: 2.75rem !important;
+            min-width: 2.75rem !important; min-height: 2.75rem !important;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.25rem;
+            box-sizing: border-box;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
+        #celebration-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 100; }
+        .view { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #qrcode canvas { border-radius: 0.75rem; border: 4px solid white; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-3 md:p-6 flex flex-col items-center justify-start relative">
+
+    <canvas id="celebration-canvas"></canvas>
+
+    <!-- ========================================== -->
+    <!-- VIEW 1: AUTH (LOGIN / SIGNUP / 2FA)        -->
+    <!-- ========================================== -->
+    <div id="auth-view" class="view w-full max-w-md flex flex-col items-center justify-center min-h-[90vh] py-8">
+        <div id="auth-card" class="bg-slate-800/80 backdrop-blur p-8 rounded-2xl border border-slate-700/80 shadow-2xl w-full space-y-6">
+            
+            <!-- STEP 1: CREDENTIALS -->
+            <div id="auth-step-credentials">
+                <div class="text-center space-y-2 mb-6">
+                    <div class="w-16 h-16 mx-auto bg-blue-600/20 text-blue-400 rounded-2xl border border-blue-500/30 text-4xl font-bold flex items-center justify-center">➗</div>
+                    <h1 class="text-2xl font-extrabold text-white">Math Challenge</h1>
+                    <p class="text-slate-400 text-sm">Sign in or create an account to practice.</p>
+                </div>
+
+                <div class="flex bg-slate-900/60 p-1 rounded-xl border border-slate-700/60 mb-6">
+                    <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition">Login</button>
+                    <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition">Sign Up</button>
+                </div>
+
+                <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4">
+                    <div id="name-field" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Name</label>
+                        <input type="text" id="auth-name" class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="John Doe">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Email</label>
+                        <input type="email" id="auth-email" required class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="student@school.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Password</label>
+                        <input type="password" id="auth-password" required class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="••••••••">
+                    </div>
+                    <div id="auth-error" class="hidden p-3 bg-rose-900/40 border border-rose-500/50 text-rose-300 text-sm rounded-xl"></div>
+                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+                        <span id="auth-btn-text">Login</span> →
+                    </button>
+                </form>
+            </div>
+
+            <!-- STEP 2: GOOGLE AUTHENTICATOR SETUP -->
+            <div id="auth-step-qr" class="hidden text-center space-y-4">
+                <div class="w-16 h-16 mx-auto bg-amber-600/20 text-amber-400 rounded-2xl border border-amber-500/30 text-4xl font-bold flex items-center justify-center">📱</div>
+                <h2 class="text-2xl font-extrabold text-white">Setup 2FA</h2>
+                <p class="text-slate-400 text-sm">Scan this QR code with the <strong class="text-white">Google Authenticator App</strong> to link your account.</p>
+                
+                <div id="qrcode" class="flex justify-center my-4"></div>
+                
+                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/60 text-left">
+                    <p class="text-xs text-slate-400 mb-1">Can't scan? Enter this code manually in your app:</p>
+                    <div class="font-mono text-amber-400 font-bold text-sm break-all" id="manual-2fa-key">KEY</div>
+                </div>
+                
+                <button onclick="proceedToCodeEntry()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition">
+                    I've Scanned It →
+                </button>
+            </div>
+
+            <!-- STEP 3: 2FA CODE VERIFICATION -->
+            <div id="auth-step-2fa" class="hidden text-center space-y-4">
+                <div class="w-16 h-16 mx-auto bg-emerald-600/20 text-emerald-400 rounded-2xl border border-emerald-500/30 text-4xl font-bold flex items-center justify-center">🔐</div>
+                <h2 class="text-2xl font-extrabold text-white">Verify Identity</h2>
+                <p class="text-slate-400 text-sm">Enter the 6-digit code from your Google Authenticator app.</p>
+                
+                <input type="text" id="2fa-input" maxlength="6" class="w-full text-center tracking-[0.5em] font-mono text-2xl bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 outline-none transition" placeholder="123456">
+                
+                <div id="2fa-error" class="hidden p-3 bg-rose-900/40 border border-rose-500/50 text-rose-300 text-sm rounded-xl"></div>
+                
+                <button onclick="verify2FA()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition">
+                    Verify & Login →
+                </button>
+                <button onclick="resetAuthFlow()" class="text-xs text-slate-400 hover:text-white">← Back to Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: HOMESCREEN / DASHBOARD             -->
+    <!-- ========================================== -->
+    <div id="home-view" class="view w-full max-w-5xl hidden flex-col items-center justify-start space-y-6">
+        <header class="w-full flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-700/80 shadow-lg">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-blue-600/20 text-blue-400 rounded-xl border border-blue-500/30 text-2xl font-bold flex items-center justify-center">➗</div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-white">Dashboard</h1>
+                    <p class="text-xs text-slate-400">Welcome back, ready to practice?</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-700/60">
+                    <span class="text-xs text-slate-400">Player</span>
+                    <span id="user-display-name" class="font-bold text-sky-400 text-sm">Student</span>
+                </div>
+                <button onclick="logout()" class="px-3 py-1.5 bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 font-semibold text-xs rounded-xl transition border border-rose-700/50">Logout</button>
+            </div>
+        </header>
+
+        <div class="bg-slate-800/80 backdrop-blur p-6 md:p-8 rounded-2xl border border-slate-700/80 shadow-xl w-full text-center">
+            <h2 class="text-2xl font-extrabold text-white mb-2">Choose Your Challenge</h2>
+            <p class="text-slate-400 text-sm mb-6 max-w-md mx-auto">Select a difficulty level below. You will need to complete 10 problems to finish the session.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/60 hover:border-blue-500/50 transition cursor-pointer text-left" onclick="startPractice('easy')">
+                    <div class="text-3xl mb-3">🌱</div>
+                    <h3 class="text-lg font-bold text-white">Level 1</h3>
+                    <p class="text-xs text-slate-400 mt-1 mb-4">Single-digit divisors with exact answers.</p>
+                    <span class="text-xs font-bold text-blue-400 bg-blue-900/30 px-3 py-1 rounded-full border border-blue-500/30">Beginner</span>
+                </div>
+                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/60 hover:border-amber-500/50 transition cursor-pointer text-left" onclick="startPractice('medium')">
+                    <div class="text-3xl mb-3">⚡</div>
+                    <h3 class="text-lg font-bold text-white">Level 2</h3>
+                    <p class="text-xs text-slate-400 mt-1 mb-4">Single-digit divisors, larger quotients.</p>
+                    <span class="text-xs font-bold text-amber-400 bg-amber-900/30 px-3 py-1 rounded-full border border-amber-500/30">Intermediate</span>
+                </div>
+                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/60 hover:border-rose-500/50 transition cursor-pointer text-left" onclick="startPractice('hard')">
+                    <div class="text-3xl mb-3">🔥</div>
+                    <h3 class="text-lg font-bold text-white">Level 3</h3>
+                    <p class="text-xs text-slate-400 mt-1 mb-4">Complex numbers resulting in remainders.</p>
+                    <span class="text-xs font-bold text-rose-400 bg-rose-900/30 px-3 py-1 rounded-full border border-rose-500/30">Advanced</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 3: MAIN PRACTICE WORKSPACE           -->
+    <!-- ========================================== -->
+    <div id="practice-view" class="view w-full max-w-5xl hidden space-y-5">
+        
+        <header class="flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-700/80 shadow-lg">
+            <div class="flex items-center gap-3">
+                <button onclick="goHome()" class="p-2 bg-slate-700/60 hover:bg-slate-600/80 rounded-xl transition border border-slate-600/50 text-base">←</button>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-white">Long Division Challenge</h1>
+                    <p class="text-xs text-slate-400">Complete 10 problems • Step-by-step division practice</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-slate-900/60 px-3.5 py-1.5 rounded-xl border border-slate-700/60">
+                    <span class="text-xs text-slate-400 font-semibold">Question</span>
+                    <span id="q-counter-display" class="font-mono font-bold text-sky-400 text-base">1 / 10</span>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-700/60">
+                    <span class="text-xs text-slate-400">Score</span>
+                    <span id="score-display" class="font-mono font-bold text-emerald-400 text-base">0</span>
+                </div>
+                <button onclick="toggleSound()" id="sound-btn" class="p-2 bg-slate-700/60 hover:bg-slate-600/80 rounded-xl transition border border-slate-600/50 text-base" title="Toggle Sound">🔊</button>
+            </div>
+        </header>
+
+        <div class="w-full bg-slate-800/80 h-2.5 rounded-full overflow-hidden border border-slate-700/50 p-0.5">
+            <div id="progress-bar-fill" class="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 10%;"></div>
+        </div>
+
+        <div id="controls-bar" class="flex flex-wrap items-center justify-between gap-4 bg-slate-800/60 p-3 rounded-2xl border border-slate-700/50">
+            <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+                <button onclick="setDifficulty('easy')" id="diff-easy" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-blue-600 text-white shadow-md shadow-blue-600/30">🌱 Level 1</button>
+                <button onclick="setDifficulty('medium')" id="diff-medium" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-white hover:bg-slate-700/50">⚡ Level 2</button>
+                <button onclick="setDifficulty('hard')" id="diff-hard" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-white hover:bg-slate-700/50">🔥 Level 3</button>
+            </div>
+
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                <button onclick="giveHint()" class="px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1">💡 Hint</button>
+                <button onclick="revealSolution()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1">👁️ Skip / Reveal</button>
+                <button onclick="restartSession()" class="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-600 transition flex items-center gap-1.5">🔄 Restart</button>
+            </div>
+        </div>
+
+        <div id="practice-workspace" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div id="main-board-card" class="lg:col-span-8 bg-slate-800/80 rounded-2xl p-5 md:p-6 border border-slate-700/80 shadow-2xl relative overflow-hidden flex flex-col items-center min-h-[420px]">
+                <div class="w-full flex items-center justify-between border-b border-slate-700/80 pb-3 mb-6">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <h2 id="board-title-text" class="font-semibold text-slate-200 text-base sm:text-lg">Complete Long Division Board</h2>
+                    </div>
+                    <span id="problem-summary-badge" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-900/50 border border-indigo-500/30 text-indigo-300">9 ) 161</span>
+                </div>
+                <div class="w-full flex justify-center py-2 overflow-x-auto min-h-[300px]">
+                    <div id="all-steps-container" class="font-mono select-none flex flex-col items-start min-w-[280px]"></div>
+                </div>
+                <div id="feedback-banner" class="w-full mt-4 p-3 rounded-xl border text-center text-sm font-semibold hidden transition-all"></div>
+                <div id="practice-actions" class="w-full flex items-center justify-center gap-3 mt-6 pt-4 border-t border-slate-700/80">
+                    <button id="main-submit-btn" onclick="handlePrimaryAction()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">✓ Submit All Steps</button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700/80 shadow-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Number Keypad</span>
+                        <span class="text-xs text-slate-500">Tap cell, then tap number</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="pressKey('1')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">1</button>
+                        <button onclick="pressKey('2')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">2</button>
+                        <button onclick="pressKey('3')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">3</button>
+                        <button onclick="pressKey('4')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">4</button>
+                        <button onclick="pressKey('5')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">5</button>
+                        <button onclick="pressKey('6')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">6</button>
+                        <button onclick="pressKey('7')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">7</button>
+                        <button onclick="pressKey('8')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">8</button>
+                        <button onclick="pressKey('9')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">9</button>
+                        <button onclick="pressKey('Backspace')" class="h-11 bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 font-semibold text-xs rounded-xl transition border border-rose-700/50 flex items-center justify-center">⌫ Clear</button>
+                        <button onclick="pressKey('0')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">0</button>
+                        <button onclick="handlePrimaryAction()" class="h-11 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-emerald-600/30 flex items-center justify-center">✓ Submit</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50 text-xs space-y-2 text-slate-300">
+                    <h3 class="font-bold text-slate-200 uppercase tracking-wider text-[11px]">Division Legend</h3>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-900/50 border border-emerald-500/50 inline-block"></span><strong class="text-emerald-400">Quotient:</strong> Result digits on top</div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-purple-900/50 border border-purple-500/50 inline-block"></span><strong class="text-purple-300">Subtract:</strong> Product of digit & divisor</div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-indigo-900/50 border border-indigo-500/50 inline-block"></span><strong class="text-indigo-300">Bring Down:</strong> Remainder + next digit</div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-rose-900/50 border border-rose-500/50 inline-block"></span><strong class="text-rose-300">Remainder:</strong> Final leftover value</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="end-summary-card" class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 md:p-10 text-center shadow-2xl max-w-2xl mx-auto space-y-6 hidden">
+            <div class="w-20 h-20 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full flex items-center justify-center text-4xl mx-auto shadow-lg shadow-emerald-500/20 animate-bounce">🏆</div>
+            <div class="space-y-2">
+                <h2 class="text-3xl font-extrabold text-white">Session Completed!</h2>
+                <p class="text-slate-400 text-sm">Great job completing all 10 long division problems.</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex flex-col items-center">
+                    <span class="text-xs text-slate-400 font-semibold mb-1">Final Score</span>
+                    <span id="final-score-val" class="text-3xl font-mono font-extrabold text-emerald-400">0</span>
+                </div>
+                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex flex-col items-center">
+                    <span class="text-xs text-slate-400 font-semibold mb-1">Solved Cleanly</span>
+                    <span id="final-solved-val" class="text-3xl font-mono font-extrabold text-blue-400">0 / 10</span>
+                </div>
+                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex flex-col items-center col-span-2 md:col-span-1">
+                    <span class="text-xs text-slate-400 font-semibold mb-1">Accuracy</span>
+                    <span id="final-accuracy-val" class="text-3xl font-mono font-extrabold text-purple-400">0%</span>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
+                <button onclick="restartSession()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">🎮 Play Again</button>
+                <button onclick="openAnswersModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2">📋 Show Answers</button>
+                <button onclick="goHome()" class="px-6 py-3 bg-slate-600 hover:bg-slate-500 text-white font-bold text-base rounded-xl shadow-lg transition flex items-center gap-2">🏠 Back to Home</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Answers Modal -->
+    <div id="answers-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] shadow-2xl space-y-4 flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                <div class="flex items-center gap-2"><span class="text-xl">📋</span><h3 class="text-lg font-bold text-white">Answer Key (10 Questions)</h3></div>
+                <button onclick="closeAnswersModal()" class="text-slate-400 hover:text-white text-xl p-1">✕</button>
+            </div>
+            <div id="answers-list-container" class="space-y-3 overflow-y-auto pr-2 flex-1"></div>
+            <div class="pt-2 border-t border-slate-700 flex justify-end">
+                <button onclick="closeAnswersModal()" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl text-sm transition">Close Review</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // AUTH & 2FA STATE MANAGEMENT
+        // ==========================================
+        let currentAuthMode = 'login';
+        
+        // Hardcoded Admin Account (Cannot be deleted or overwritten)
+        const ADMIN_EMAIL = 'ibraheem.muhammad.ai@gmail.com';
+        const ADMIN_PASS = 'Midea@222';
+        const ADMIN_NAME = 'Admin Ibraheem';
+        const ADMIN_2FA_SECRET = 'JBSWY3DPEHPK3PXP'; // Standard Base32 secret for testing
+        
+        let mockDatabase = {
+            [ADMIN_EMAIL]: { name: ADMIN_NAME, pass: ADMIN_PASS, secret: ADMIN_2FA_SECRET, isAdmin: true }
+        }; 
+        
+        let currentUser2FA = null; 
+
+        function switchAuthTab(mode) {
+            currentAuthMode = mode;
+            resetAuthFlow();
+            const loginTab = document.getElementById('tab-login');
+            const signupTab = document.getElementById('tab-signup');
+            const nameField = document.getElementById('name-field');
+            const btnText = document.getElementById('auth-btn-text');
+
+            if (mode === 'login') {
+                loginTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition';
+                signupTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition';
+                nameField.classList.add('hidden');
+                btnText.innerText = 'Login';
+            } else {
+                signupTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition';
+                loginTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition';
+                nameField.classList.remove('hidden');
+                btnText.innerText = 'Sign Up';
+            }
+        }
+
+        function resetAuthFlow() {
+            document.getElementById('auth-step-credentials').classList.remove('hidden');
+            document.getElementById('auth-step-qr').classList.add('hidden');
+            document.getElementById('auth-step-2fa').classList.add('hidden');
+            document.getElementById('auth-error').classList.add('hidden');
+            document.getElementById('2fa-error').classList.add('hidden');
+        }
+
+        function showAuthError(msg) {
+            const errDiv = document.getElementById('auth-error');
+            errDiv.innerText = msg;
+            errDiv.classList.remove('hidden');
+            const card = document.getElementById('auth-card');
+            card.classList.add('shake');
+            setTimeout(() => card.classList.remove('shake'), 400);
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-password').value;
+            const name = document.getElementById('auth-name').value;
+
+            if (currentAuthMode === 'signup') {
+                if (!name || !email || !pass) return showAuthError("Please fill out all fields.");
+                
+                // Protect Admin account from being overwritten
+                if (email === ADMIN_EMAIL) {
+                    return showAuthError("This email belongs to a protected Admin account and cannot be used for sign up.");
+                }
+                
+                const secret = generateBase32Secret();
+                mockDatabase[email] = { name, pass, secret, isAdmin: false };
+                
+                document.getElementById('auth-step-credentials').classList.add('hidden');
+                document.getElementById('auth-step-qr').classList.remove('hidden');
+                
+                const qrText = `otpauth://totp/MathChallenge:${email}?secret=${secret}&issuer=MathChallenge`;
+                document.getElementById('qrcode').innerHTML = "";
+                new QRCode(document.getElementById('qrcode'), {
+                    text: qrText, width: 200, height: 200, colorDark: "#000000", colorLight: "#ffffff",
+                });
+                document.getElementById('manual-2fa-key').innerText = secret;
+                currentUser2FA = secret; 
+
+            } else {
+                if (!mockDatabase[email]) return showAuthError("User not found. Please sign up first.");
+                if (mockDatabase[email].pass !== pass) return showAuthError("Incorrect password. Please try again.");
+                
+                currentUser2FA = mockDatabase[email].secret;
+                document.getElementById('auth-step-credentials').classList.add('hidden');
+                document.getElementById('auth-step-2fa').classList.remove('hidden');
+                document.getElementById('2fa-input').focus();
+            }
+        }
+
+        function proceedToCodeEntry() {
+            document.getElementById('auth-step-qr').classList.add('hidden');
+            document.getElementById('auth-step-2fa').classList.remove('hidden');
+            document.getElementById('2fa-input').focus();
+        }
+
+        async function verify2FA() {
+            const code = document.getElementById('2fa-input').value;
+            const errDiv = document.getElementById('2fa-error');
+            const card = document.getElementById('auth-card');
+            
+            // Use native Web Crypto API to verify the code
+            const isValid = await verifyTOTP(currentUser2FA, code);
+            
+            if (!isValid) {
+                errDiv.innerText = "Invalid 2FA code. Please enter the current 6-digit code from your authenticator app.";
+                errDiv.classList.remove('hidden');
+                card.classList.add('shake');
+                setTimeout(() => card.classList.remove('shake'), 400);
+                return; // STOP EXECUTION - DO NOT LOG IN
+            }
+
+            // Success!
+            const email = document.getElementById('auth-email').value;
+            const name = mockDatabase[email].name; // Fetch name from DB
+            document.getElementById('user-display-name').innerText = name;
+            
+            currentUser2FA = null; 
+            document.getElementById('2fa-input').value = ""; 
+            document.getElementById('2fa-error').classList.add('hidden');
+            showView('home-view');
+        }
+
+        function generateBase32Secret() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            let secret = '';
+            for (let i = 0; i < 16; i++) {
+                secret += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return secret;
+        }
+
+        // Native TOTP verification algorithm using Web Crypto API (No external libraries needed)
+        async function verifyTOTP(secret, token) {
+            if (!secret || !token || token.length !== 6) return false;
+
+            const epoch = Math.floor(Date.now() / 1000);
+            const timeStep = 30;
+            const counter = Math.floor(epoch / timeStep);
+
+            // Convert Base32 secret to Uint8Array
+            const keyData = base32ToUint8Array(secret);
+            
+            // Create 8-byte counter array
+            const counterBuffer = new ArrayBuffer(8);
+            const counterView = new DataView(counterBuffer);
+            const high = Math.floor(counter / 0x100000000);
+            const low = counter >>> 0;
+            counterView.setUint32(0, high);
+            counterView.setUint32(4, low);
+
+            try {
+                // Import key for HMAC
+                const key = await crypto.subtle.importKey(
+                    "raw", 
+                    keyData, 
+                    { name: "HMAC", hash: "SHA-1" }, 
+                    false, 
+                    ["sign"]
+                );
+                
+                // Sign the counter
+                const hmacBuffer = await crypto.subtle.sign("HMAC", key, counterBuffer);
+                const hmac = new Uint8Array(hmacBuffer);
+                
+                // Dynamic truncation (RFC 6238)
+                const offset = hmac[hmac.length - 1] & 0x0f;
+                const binary = ((hmac[offset] & 0x7f) << 24) |
+                               ((hmac[offset + 1] & 0xff) << 16) |
+                               ((hmac[offset + 2] & 0xff) << 8) |
+                               (hmac[offset + 3] & 0xff);
+                               
+                let totpStr = (binary % 1000000).toString();
+                while (totpStr.length < 6) {
+                    totpStr = '0' + totpStr;
+                }
+                return totpStr === token;
+            } catch (e) {
+                console.error("Crypto error:", e);
+                return false;
+            }
+        }
+
+        function base32ToUint8Array(base32) {
+            const base32chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            let bits = '';
+            let bytes = [];
+            for (let i = 0; i < base32.length; i++) {
+                const val = base32chars.indexOf(base32[i].toUpperCase());
+                if (val === -1) continue;
+                bits += val.toString(2).padStart(5, '0');
+            }
+            for (let i = 0; i + 8 <= bits.length; i += 8) {
+                bytes.push(parseInt(bits.substring(i, i + 8), 2));
+            }
+            return new Uint8Array(bytes);
+        }
+
+        function logout() {
+            document.getElementById('auth-form').reset();
+            showView('auth-view');
+        }
+
+        function goHome() { showView('home-view'); }
+
+        function startPractice(level) {
+            setDifficulty(level);
+            showView('practice-view');
+            restartSession();
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            const targetView = document.getElementById(viewId);
+            targetView.classList.remove('hidden');
+            targetView.classList.remove('view'); 
+            void targetView.offsetWidth; 
+            targetView.classList.add('view');
+        }
+
+        // ==========================================
+        // CORE APP LOGIC 
+        // ==========================================
+        const TOTAL_QUESTIONS = 10;
+        let currentQuestionIndex = 1;
+        let divisor = 9, dividend = 161;
+        let difficulty = 'easy';
+        let score = 0;
+        let soundEnabled = true;
+        let isProblemSolved = false;
+        let focusedInputId = null;
+        let questionHistory = []; 
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function playTone(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now); osc.frequency.setValueAtTime(180, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554.37, now + 0.1);
+                    osc.frequency.setValueAtTime(659.25, now + 0.2); osc.frequency.setValueAtTime(880, now + 0.3);
+                    gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                    osc.start(now); osc.stop(now + 0.6);
+                } else if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now); osc.stop(now + 0.05);
+                }
+            } catch (e) { console.log("Audio play blocked"); }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-btn').innerText = soundEnabled ? '🔊' : '🔇';
+        }
+
+        function setDifficulty(level) {
+            difficulty = level;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.className = 'diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-white hover:bg-slate-700/50';
+            });
+            const activeBtn = document.getElementById(`diff-${level}`);
+            if (activeBtn) activeBtn.className = 'diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-blue-600 text-white shadow-md shadow-blue-600/30';
+            restartSession();
+        }
+
+        function generateProblemValues() {
+            if (difficulty === 'easy') {
+                divisor = Math.floor(Math.random() * 8) + 2;
+                const quotient = Math.floor(Math.random() * 9) + 1;
+                dividend = divisor * quotient;
+            } else if (difficulty === 'medium') {
+                divisor = Math.floor(Math.random() * 8) + 2;
+                const quotient = Math.floor(Math.random() * 40) + 10;
+                dividend = divisor * quotient;
+            } else {
+                divisor = Math.floor(Math.random() * 8) + 2;
+                dividend = Math.floor(Math.random() * 300) + 105;
+            }
+        }
+
+        function calculateLongDivisionSteps(div, dvd) {
+            const dvdStr = dvd.toString();
+            const steps = [];
+            let workingVal = 0;
+            let quotientStr = "";
+
+            for (let i = 0; i < dvdStr.length; i++) {
+                const digit = parseInt(dvdStr[i], 10);
+                workingVal = workingVal * 10 + digit;
+                if (workingVal < div && i === 0 && dvdStr.length > 1) {
+                    quotientStr += " ";
+                    continue;
+                }
+                const qDigit = Math.floor(workingVal / div);
+                const product = qDigit * div;
+                const remainder = workingVal - product;
+                quotientStr += qDigit.toString();
+                steps.push({
+                    digitIndex: i, workingVal: workingVal, qDigit: qDigit,
+                    product: product, remainder: remainder,
+                    nextDigit: (i < dvdStr.length - 1) ? parseInt(dvdStr[i + 1], 10) : null
+                });
+                workingVal = remainder;
+            }
+            return {
+                divisor: div, dividend: dvd, dividendStr: dvdStr,
+                quotientStr: Math.floor(dvd / div).toString(),
+                finalRemainder: dvd % div, steps: steps
+            };
+        }
+
+        function renderAllStepsBoard() {
+            const container = document.getElementById('all-steps-container');
+            container.innerHTML = '';
+            const data = calculateLongDivisionSteps(divisor, dividend);
+            document.getElementById('problem-summary-badge').innerText = `${divisor} ) ${dividend}`;
+
+            function makeCell(contentOrInput) {
+                const cell = document.createElement('div');
+                cell.className = "cell-display";
+                if (contentOrInput) {
+                    if (typeof contentOrInput === 'string') cell.innerText = contentOrInput;
+                    else cell.appendChild(contentOrInput);
+                }
+                return cell;
+            }
+
+            const quotientRow = document.createElement('div');
+            quotientRow.className = "flex items-center space-x-2 mb-1";
+            const divSpacer = document.createElement('div');
+            divSpacer.className = "w-16 text-right font-bold text-amber-400 pr-2 text-base";
+            quotientRow.appendChild(divSpacer);
+            const bracketSpacer = document.createElement('div');
+            bracketSpacer.className = "w-4";
+            quotientRow.appendChild(bracketSpacer);
+            const qContainer = document.createElement('div');
+            qContainer.className = "flex space-x-2 pl-2";
+            const padCount = data.dividendStr.length - data.quotientStr.length;
+
+            for (let i = 0; i < data.dividendStr.length; i++) {
+                if (i < padCount) {
+                    qContainer.appendChild(makeCell(""));
+                } else {
+                    const qIndex = i - padCount;
+                    const expectedDigit = data.quotientStr[qIndex];
+                    const input = document.createElement('input');
+                    input.type = "text"; input.maxLength = 1;
+                    input.id = `q-${qIndex}`;
+                    input.dataset.expected = expectedDigit;
+                    input.className = "grid-cell-input";
+                    input.addEventListener('focus', () => focusedInputId = input.id);
+                    input.addEventListener('input', (e) => handleInputEvent(e, input));
+                    qContainer.appendChild(makeCell(input));
+                }
+            }
+            const qBadge = document.createElement('span');
+            qBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center";
+            qBadge.innerText = "← Quotient";
+            qContainer.appendChild(qBadge);
+            quotientRow.appendChild(qContainer);
+            container.appendChild(quotientRow);
+
+            const mainRow = document.createElement('div');
+            mainRow.className = "flex items-center space-x-2 pb-1";
+            const divBox = document.createElement('div');
+            divBox.className = "w-16 text-right font-bold text-amber-400 text-xl pr-2";
+            divBox.innerText = data.divisor;
+            mainRow.appendChild(divBox);
+            const bracketBox = document.createElement('div');
+            bracketBox.className = "w-4 text-blue-400 font-bold text-2xl text-center";
+            bracketBox.innerText = ")";
+            mainRow.appendChild(bracketBox);
+            const dvdContainer = document.createElement('div');
+            dvdContainer.className = "flex space-x-2 pl-2 border-t-2 border-blue-400 pt-1";
+
+            for (let i = 0; i < data.dividendStr.length; i++) {
+                const numBox = document.createElement('div');
+                numBox.className = "cell-display bg-slate-800 rounded-lg border border-slate-700 text-white font-bold text-xl";
+                numBox.innerText = data.dividendStr[i];
+                dvdContainer.appendChild(numBox);
+            }
+            const dvdBadge = document.createElement('span');
+            dvdBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-sky-900/30 text-sky-300 border border-sky-500/30 font-semibold flex items-center";
+            dvdBadge.innerText = "← Dividend";
+            dvdContainer.appendChild(dvdBadge);
+            mainRow.appendChild(dvdContainer);
+            container.appendChild(mainRow);
+
+            data.steps.forEach((st, idx) => {
+                const prodRow = document.createElement('div');
+                prodRow.className = "flex items-center space-x-2 mt-2";
+                const prodLabel = document.createElement('div');
+                prodLabel.className = "w-16 text-right font-sans text-xs font-bold text-purple-400 pr-1";
+                prodLabel.innerText = "Subtract";
+                prodRow.appendChild(prodLabel);
+                const prodBracketSpacer = document.createElement('div');
+                prodBracketSpacer.className = "w-4 text-purple-400 font-bold text-center text-lg";
+                prodBracketSpacer.innerText = "-";
+                prodRow.appendChild(prodBracketSpacer);
+                const prodGrid = document.createElement('div');
+                prodGrid.className = "flex space-x-2 pl-2 border-b-2 border-purple-500/50 pb-1";
+
+                const prodStr = st.product.toString();
+                const totalCols = data.dividendStr.length;
+                const prodEndCol = st.digitIndex;
+                const prodStartCol = prodEndCol - prodStr.length + 1;
+
+                for (let col = 0; col < totalCols; col++) {
+                    if (col >= prodStartCol && col <= prodEndCol) {
+                        const charIdx = col - prodStartCol;
+                        const expectedChar = prodStr[charIdx];
+                        const input = document.createElement('input');
+                        input.type = "text"; input.maxLength = 1;
+                        input.id = `prod-${idx}-${charIdx}`;
+                        input.dataset.expected = expectedChar;
+                        input.className = "grid-cell-input";
+                        input.addEventListener('focus', () => focusedInputId = input.id);
+                        input.addEventListener('input', (e) => handleInputEvent(e, input));
+                        prodGrid.appendChild(makeCell(input));
+                    } else {
+                        prodGrid.appendChild(makeCell(""));
+                    }
+                }
+                const prodBadge = document.createElement('span');
+                prodBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-purple-900/30 text-purple-300 border border-purple-500/30 font-semibold flex items-center";
+                prodBadge.innerText = `Step ${idx + 1}`;
+                prodGrid.appendChild(prodBadge);
+                prodRow.appendChild(prodGrid);
+                container.appendChild(prodRow);
+
+                if (idx < data.steps.length - 1) {
+                    const remRow = document.createElement('div');
+                    remRow.className = "flex items-center space-x-2 mt-1";
+                    const remLabel = document.createElement('div');
+                    remLabel.className = "w-16 text-right font-sans text-xs font-bold text-indigo-400 pr-1";
+                    remLabel.innerText = "Bring Down";
+                    remRow.appendChild(remLabel);
+                    const remSpacer = document.createElement('div');
+                    remSpacer.className = "w-4 text-indigo-400 font-bold text-center text-lg";
+                    remSpacer.innerText = "↓";
+                    remRow.appendChild(remSpacer);
+                    const remGrid = document.createElement('div');
+                    remGrid.className = "flex space-x-2 pl-2";
+
+                    const nextWorkingValStr = (st.remainder * 10 + st.nextDigit).toString();
+                    const remEndCol = st.digitIndex + 1;
+                    const remStartCol = remEndCol - nextWorkingValStr.length + 1;
+
+                    for (let col = 0; col < totalCols; col++) {
+                        if (col >= remStartCol && col <= remEndCol) {
+                            const charIdx = col - remStartCol;
+                            const expectedChar = nextWorkingValStr[charIdx];
+                            const input = document.createElement('input');
+                            input.type = "text"; input.maxLength = 1;
+                            input.id = `rem-${idx}-${charIdx}`;
+                            input.dataset.expected = expectedChar;
+                            input.className = "grid-cell-input";
+                            input.addEventListener('focus', () => focusedInputId = input.id);
+                            input.addEventListener('input', (e) => handleInputEvent(e, input));
+                            remGrid.appendChild(makeCell(input));
+                        } else {
+                            remGrid.appendChild(makeCell(""));
+                        }
+                    }
+                    const remBadge = document.createElement('span');
+                    remBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-indigo-900/30 text-indigo-300 border border-indigo-500/30 font-semibold flex items-center";
+                    remBadge.innerText = "Bring Down";
+                    remGrid.appendChild(remBadge);
+                    remRow.appendChild(remGrid);
+                    container.appendChild(remRow);
+                } else {
+                    const finalRow = document.createElement('div');
+                    finalRow.className = "flex items-center space-x-2 mt-2 pt-1 border-t-2 border-rose-500/50";
+                    const finalLabel = document.createElement('div');
+                    finalLabel.className = "w-16 text-right font-sans text-xs font-bold text-rose-400 pr-1";
+                    finalLabel.innerText = "Remainder";
+                    finalRow.appendChild(finalLabel);
+                    const finalSpacer = document.createElement('div');
+                    finalSpacer.className = "w-4 text-rose-400 font-bold text-center text-lg";
+                    finalSpacer.innerText = "=";
+                    finalRow.appendChild(finalSpacer);
+                    const finalGrid = document.createElement('div');
+                    finalGrid.className = "flex space-x-2 pl-2";
+
+                    const finalRemStr = st.remainder.toString();
+                    const finalEndCol = st.digitIndex;
+                    const finalStartCol = finalEndCol - finalRemStr.length + 1;
+
+                    for (let col = 0; col < totalCols; col++) {
+                        if (col >= finalStartCol && col <= finalEndCol) {
+                            const charIdx = col - finalStartCol;
+                            const expectedChar = finalRemStr[charIdx];
+                            const input = document.createElement('input');
+                            input.type = "text"; input.maxLength = 1;
+                            input.id = `finalrem-${charIdx}`;
+                            input.dataset.expected = expectedChar;
+                            input.className = "grid-cell-input";
+                            input.addEventListener('focus', () => focusedInputId = input.id);
+                            input.addEventListener('input', (e) => handleInputEvent(e, input));
+                            finalGrid.appendChild(makeCell(input));
+                        } else {
+                            finalGrid.appendChild(makeCell(""));
+                        }
+                    }
+                    const finalBadge = document.createElement('span');
+                    finalBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-rose-900/30 text-rose-300 border border-rose-500/30 font-semibold flex items-center";
+                    finalBadge.innerText = "Remainder";
+                    finalGrid.appendChild(finalBadge);
+                    finalRow.appendChild(finalGrid);
+                    container.appendChild(finalRow);
+                }
+            });
+
+            setTimeout(() => {
+                const firstInput = document.querySelector('.grid-cell-input');
+                if (firstInput) firstInput.focus();
+            }, 50);
+        }
+
+        function handleInputEvent(e, input) {
+            playTone('click');
+            input.classList.remove('correct', 'incorrect', 'hint-highlight');
+            const val = input.value.replace(/[^0-9]/g, '');
+            input.value = val;
+            if (val.length === 1) {
+                const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+                const curIdx = inputs.indexOf(input);
+                if (curIdx >= 0 && curIdx < inputs.length - 1) inputs[curIdx + 1].focus();
+            }
+        }
+
+        function pressKey(key) {
+            playTone('click');
+            let targetInput = null;
+            if (focusedInputId) {
+                targetInput = document.getElementById(focusedInputId);
+            } else {
+                const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+                targetInput = inputs.find(i => i.value === "");
+            }
+            if (!targetInput) return;
+
+            if (key === 'Backspace') {
+                if (targetInput.value === "") {
+                    const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+                    const curIdx = inputs.indexOf(targetInput);
+                    if (curIdx > 0) {
+                        const prev = inputs[curIdx - 1];
+                        prev.focus(); prev.value = "";
+                        prev.classList.remove('correct', 'incorrect', 'hint-highlight');
+                    }
+                } else {
+                    targetInput.value = "";
+                    targetInput.classList.remove('correct', 'incorrect', 'hint-highlight');
+                }
+            } else if (/^[0-9]$/.test(key)) {
+                targetInput.value = key;
+                targetInput.classList.remove('correct', 'incorrect', 'hint-highlight');
+                const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+                const curIdx = inputs.indexOf(targetInput);
+                if (curIdx >= 0 && curIdx < inputs.length - 1) inputs[curIdx + 1].focus();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' && !e.target.classList.contains('grid-cell-input') && e.target.id !== '2fa-input') return;
+            
+            if (e.target.id === '2fa-input' && e.key === 'Enter') {
+                e.preventDefault();
+                verify2FA();
+                return;
+            }
+
+            if (e.target.tagName === 'INPUT' && !e.target.classList.contains('grid-cell-input')) return;
+            if (e.key === 'Enter') {
+                e.preventDefault(); handlePrimaryAction();
+            } else if (e.key === 'Backspace') {
+                if (document.activeElement && document.activeElement.classList.contains('grid-cell-input')) {
+                    if (document.activeElement.value === "") { e.preventDefault(); pressKey('Backspace'); }
+                }
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.key)) {
+                const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+                const curIdx = inputs.indexOf(document.activeElement);
+                if (curIdx > 0) { e.preventDefault(); inputs[curIdx - 1].focus(); }
+            } else if (['ArrowRight', 'ArrowDown'].includes(e.key)) {
+                const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+                const curIdx = inputs.indexOf(document.activeElement);
+                if (curIdx >= 0 && curIdx < inputs.length - 1) { e.preventDefault(); inputs[curIdx + 1].focus(); }
+            }
+        });
+
+        function checkAllAnswers() {
+            const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+            let allFilled = true; let allCorrect = true;
+
+            inputs.forEach(input => {
+                const val = input.value.trim();
+                const expected = input.dataset.expected;
+                if (val === "") {
+                    allFilled = false; allCorrect = false;
+                    input.classList.remove('correct', 'incorrect');
+                } else if (val === expected) {
+                    input.classList.add('correct');
+                    input.classList.remove('incorrect', 'hint-highlight');
+                } else {
+                    allCorrect = false;
+                    input.classList.add('incorrect');
+                    input.classList.remove('correct', 'hint-highlight');
+                }
+            });
+
+            const banner = document.getElementById('feedback-banner');
+            banner.classList.remove('hidden', 'bg-emerald-900/40', 'border-emerald-500/50', 'text-emerald-300', 'bg-rose-900/40', 'border-rose-500/50', 'text-rose-300', 'bg-amber-900/40', 'border-amber-500/50', 'text-amber-300');
+
+            if (allCorrect) {
+                isProblemSolved = true;
+                score += 10;
+                updateHeaderUI();
+                questionHistory[currentQuestionIndex - 1].solvedCleanly = true;
+                playTone('win');
+                banner.classList.add('bg-emerald-900/40', 'border-emerald-500/50', 'text-emerald-300');
+                if (currentQuestionIndex < TOTAL_QUESTIONS) banner.innerText = "🎉 Excellent Work! All digits are correct! Click 'Next Question' to continue.";
+                else banner.innerText = "🎉 Fantastic! You completed the final problem! Click 'Finish Session' to view results.";
+                
+                const submitBtn = document.getElementById('main-submit-btn');
+                submitBtn.className = "px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2";
+                submitBtn.innerText = currentQuestionIndex < TOTAL_QUESTIONS ? "➡️ Next Question" : "🏁 Finish Session";
+            } else {
+                playTone('wrong');
+                const boardCard = document.getElementById('main-board-card');
+                boardCard.classList.add('shake');
+                setTimeout(() => boardCard.classList.remove('shake'), 400);
+                banner.classList.add('bg-rose-900/40', 'border-rose-500/50', 'text-rose-300');
+                if (!allFilled) banner.innerText = "⚠️ Some cells are missing! Please fill in all blank boxes.";
+                else banner.innerText = "❌ Some digits are incorrect. Check highlighted red boxes and try again!";
+            }
+        }
+
+        function handlePrimaryAction() {
+            if (isProblemSolved) advanceToNextQuestion();
+            else checkAllAnswers();
+        }
+
+        function advanceToNextQuestion() {
+            if (currentQuestionIndex < TOTAL_QUESTIONS) {
+                currentQuestionIndex++;
+                loadQuestionForIndex(currentQuestionIndex);
+            } else {
+                showEndSummaryScreen();
+            }
+        }
+
+        function giveHint() {
+            if (isProblemSolved) return;
+            const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+            const emptyOrWrong = inputs.find(i => i.value === "" || i.value !== i.dataset.expected);
+            if (emptyOrWrong) {
+                emptyOrWrong.focus();
+                emptyOrWrong.classList.add('hint-highlight');
+                playTone('click');
+                const banner = document.getElementById('feedback-banner');
+                banner.classList.remove('hidden', 'bg-emerald-900/40', 'border-emerald-500/50', 'text-emerald-300', 'bg-rose-900/40', 'border-rose-500/50', 'text-rose-300');
+                banner.classList.add('bg-amber-900/40', 'border-amber-500/50', 'text-amber-300');
+                banner.innerText = `💡 Hint: The highlighted box needs digit ${emptyOrWrong.dataset.expected}.`;
+            }
+        }
+
+        function revealSolution() {
+            const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+            inputs.forEach(input => {
+                input.value = input.dataset.expected;
+                input.classList.add('correct');
+                input.classList.remove('incorrect', 'hint-highlight');
+            });
+            isProblemSolved = true;
+            const banner = document.getElementById('feedback-banner');
+            banner.classList.remove('hidden', 'bg-rose-900/40', 'border-rose-500/50', 'text-rose-300', 'bg-amber-900/40', 'border-amber-500/50', 'text-amber-300');
+            banner.classList.add('bg-emerald-900/40', 'border-emerald-500/50', 'text-emerald-300');
+            banner.innerText = "👁️ Solution revealed! Press 'Next' to continue.";
+            const submitBtn = document.getElementById('main-submit-btn');
+            submitBtn.className = "px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2";
+            submitBtn.innerText = currentQuestionIndex < TOTAL_QUESTIONS ? "➡️ Next Question" : "🏁 Finish Session";
+        }
+
+        function updateHeaderUI() {
+            document.getElementById('q-counter-display').innerText = `${currentQuestionIndex} / ${TOTAL_QUESTIONS}`;
+            document.getElementById('score-display').innerText = score;
+            const pct = (currentQuestionIndex / TOTAL_QUESTIONS) * 100;
+            document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+        }
+
+        function loadQuestionForIndex(index) {
+            isProblemSolved = false;
+            if (!questionHistory[index - 1]) {
+                generateProblemValues();
+                const qCalculated = calculateLongDivisionSteps(divisor, dividend);
+                questionHistory[index - 1] = {
+                    index: index, divisor: divisor, dividend: dividend,
+                    quotient: Math.floor(dividend / divisor), remainder: dividend % divisor,
+                    calcData: qCalculated, solvedCleanly: false
+                };
+            } else {
+                const qObj = questionHistory[index - 1];
+                divisor = qObj.divisor; dividend = qObj.dividend;
+            }
+            document.getElementById('feedback-banner').classList.add('hidden');
+            const submitBtn = document.getElementById('main-submit-btn');
+            submitBtn.className = "px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2";
+            submitBtn.innerText = "✓ Submit All Steps";
+            updateHeaderUI();
+            renderAllStepsBoard();
+        }
+
+        function restartSession() {
+            currentQuestionIndex = 1;
+            score = 0;
+            questionHistory = [];
+            document.getElementById('practice-workspace').classList.remove('hidden');
+            document.getElementById('controls-bar').classList.remove('hidden');
+            document.getElementById('end-summary-card').classList.add('hidden');
+            loadQuestionForIndex(1);
+        }
+
+        function showEndSummaryScreen() {
+            document.getElementById('practice-workspace').classList.add('hidden');
+            document.getElementById('controls-bar').classList.add('hidden');
+            document.getElementById('end-summary-card').classList.remove('hidden');
+            const cleanlySolvedCount = questionHistory.filter(q => q.solvedCleanly).length;
+            const accuracyPct = Math.round((cleanlySolvedCount / TOTAL_QUESTIONS) * 100);
+            document.getElementById('final-score-val').innerText = score;
+            document.getElementById('final-solved-val').innerText = `${cleanlySolvedCount} / ${TOTAL_QUESTIONS}`;
+            document.getElementById('final-accuracy-val').innerText = `${accuracyPct}%`;
+            triggerCelebrationParticles();
+            playTone('win');
+        }
+
+        function openAnswersModal() {
+            const container = document.getElementById('answers-list-container');
+            container.innerHTML = '';
+            questionHistory.forEach((q, idx) => {
+                const qCard = document.createElement('div');
+                qCard.className = "bg-slate-900/90 border border-slate-700/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
+                const qLeft = document.createElement('div');
+                qLeft.className = "space-y-1";
+                const title = document.createElement('div');
+                title.className = "font-extrabold text-white text-base flex items-center gap-2";
+                title.innerHTML = `<span class="text-xs text-slate-400 font-mono">Q${idx + 1}.</span> ${q.divisor} ) ${q.dividend}`;
+                qLeft.appendChild(title);
+                const details = document.createElement('div');
+                details.className = "text-xs text-slate-300 font-mono space-x-3";
+                details.innerHTML = `<span class="text-emerald-400">Quotient: <b>${q.quotient}</b></span> | <span class="text-rose-400">Remainder: <b>${q.remainder}</b></span>`;
+                qLeft.appendChild(details);
+                const statusBadge = document.createElement('span');
+                if (q.solvedCleanly) {
+                    statusBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-500/30";
+                    statusBadge.innerText = "✓ Solved";
+                } else {
+                    statusBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-900/40 text-amber-300 border border-amber-500/30";
+                    statusBadge.innerText = "👁️ Answer Shown";
+                }
+                qCard.appendChild(qLeft);
+                qCard.appendChild(statusBadge);
+                container.appendChild(qCard);
+            });
+            document.getElementById('answers-modal').classList.remove('hidden');
+        }
+
+        function closeAnswersModal() {
+            document.getElementById('answers-modal').classList.add('hidden');
+        }
+
+        function triggerCelebrationParticles() {
+            const canvas = document.getElementById('celebration-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const particles = [];
+            const colors = ['#34d399', '#60a5fa', '#f59e0b', '#ec4899', '#a78bfa', '#f43f5e'];
+
+            for (let i = 0; i < 110; i++) {
+                particles.push({
+                    x: canvas.width / 2, y: canvas.height * 0.4,
+                    vx: (Math.random() - 0.5) * 18, vy: (Math.random() - 0.75) * 18,
+                    size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1, decay: Math.random() * 0.015 + 0.01
+                });
+            }
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+                particles.forEach(p => {
+                    if (p.alpha > 0) {
+                        alive = true; p.x += p.vx; p.y += p.vy; p.vy += 0.28; p.alpha -= p.decay;
+                        ctx.globalAlpha = Math.max(0, p.alpha);
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                    }
+                });
+                if (alive) requestAnimationFrame(animateParticles);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            animateParticles();
+        }
+
+        // Initialize App on load (Default to Auth View)
+        window.onload = function() {
+            switchAuthTab('login'); 
+            showView('auth-view');
+        };
+    </script>
+</body>
+</html>
