@@ -108,7 +108,6 @@
                 <p class="text-slate-400 text-sm">Scan this QR code with the <strong class="text-white">Google Authenticator App</strong> to link your account.</p>
                 
                 <div class="flex justify-center my-4">
-                    <!-- Direct Image QR Code to avoid generation bugs on Vercel -->
                     <div class="qr-frame">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/JBSWY3DPEHPK3PXP.png" alt="2FA QR Code" width="200" height="200">
                     </div>
@@ -130,6 +129,13 @@
                 <h2 class="text-2xl font-extrabold text-white">Verify Identity</h2>
                 <p class="text-slate-400 text-sm">Enter the 6-digit code from your Google Authenticator app.</p>
                 
+                <!-- TESTING HELPER BOX -->
+                <div class="bg-blue-900/30 border border-blue-500/40 p-4 rounded-xl text-center mt-4">
+                    <p class="text-xs text-blue-300 mb-2 font-semibold uppercase tracking-wider">Testing Helper (Expected Code)</p>
+                    <div id="test-totp-code" class="font-mono text-3xl font-extrabold text-blue-200 tracking-[0.3em]">------</div>
+                    <p class="text-xs text-slate-400 mt-2">Expires in: <span id="test-totp-time" class="font-mono font-bold text-rose-400">30</span>s</p>
+                </div>
+
                 <input type="text" id="2fa-input" maxlength="6" class="w-full text-center tracking-[0.5em] font-mono text-2xl bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 outline-none transition" placeholder="123456">
                 
                 <div id="2fa-error" class="hidden p-3 bg-rose-900/40 border border-rose-500/50 text-rose-300 text-sm rounded-xl"></div>
@@ -332,6 +338,7 @@
         // AUTH & 2FA STATE MANAGEMENT
         // ==========================================
         let currentAuthMode = 'login';
+        let testCodeInterval = null; // Interval for the testing helper
         
         const ADMIN_EMAIL = 'ibraheem.muhammad.ai@gmail.com';
         const ADMIN_PASS = 'Midea@222';
@@ -366,6 +373,7 @@
         }
 
         function resetAuthFlow() {
+            if (testCodeInterval) clearInterval(testCodeInterval); // Stop timer if going back
             document.getElementById('auth-step-credentials').classList.remove('hidden');
             document.getElementById('auth-step-qr').classList.add('hidden');
             document.getElementById('auth-step-2fa').classList.add('hidden');
@@ -411,6 +419,7 @@
                 document.getElementById('auth-step-credentials').classList.add('hidden');
                 document.getElementById('auth-step-2fa').classList.remove('hidden');
                 document.getElementById('2fa-input').focus();
+                startTestCodeDisplay(); // Start showing the testing code
             }
         }
 
@@ -418,6 +427,30 @@
             document.getElementById('auth-step-qr').classList.add('hidden');
             document.getElementById('auth-step-2fa').classList.remove('hidden');
             document.getElementById('2fa-input').focus();
+            startTestCodeDisplay(); // Start showing the testing code
+        }
+
+        // ==========================================
+        // TESTING HELPER FUNCTION
+        // ==========================================
+        function startTestCodeDisplay() {
+            if (testCodeInterval) clearInterval(testCodeInterval);
+            
+            const updateCode = () => {
+                if (!currentUser2FA) return;
+                const timeStep = 30;
+                const currentCounter = Math.floor(Date.now() / 1000 / timeStep);
+                const code = generateTOTP(currentUser2FA, currentCounter);
+                const secondsLeft = timeStep - (Math.floor(Date.now() / 1000) % timeStep);
+                
+                const codeEl = document.getElementById('test-totp-code');
+                const timeEl = document.getElementById('test-totp-time');
+                if (codeEl) codeEl.innerText = code;
+                if (timeEl) timeEl.innerText = secondsLeft;
+            };
+            
+            updateCode(); // Call immediately
+            testCodeInterval = setInterval(updateCode, 1000); // Update every second
         }
 
         function verify2FA() {
@@ -425,13 +458,10 @@
             const errDiv = document.getElementById('2fa-error');
             const card = document.getElementById('auth-card');
             
-            // Synchronous verification using jsSHA
             const isValid = verifyTOTP(currentUser2FA, code);
             
             if (!isValid) {
-                // Debugging output to help identify time drift issues
-                const expectedCode = generateTOTP(currentUser2FA, Math.floor(Date.now() / 1000 / 30));
-                errDiv.innerText = `Invalid 2FA code. App expected: ${expectedCode}. Make sure your device time is correct.`;
+                errDiv.innerText = "Invalid 2FA code. Please enter the current 6-digit code from your authenticator app.";
                 errDiv.classList.remove('hidden');
                 card.classList.add('shake');
                 setTimeout(() => card.classList.remove('shake'), 400);
@@ -439,6 +469,7 @@
             }
 
             // Success!
+            if (testCodeInterval) clearInterval(testCodeInterval); // Stop timer
             const email = document.getElementById('auth-email').value;
             const name = mockDatabase[email].name; 
             document.getElementById('user-display-name').innerText = name;
@@ -465,7 +496,7 @@
             const timeStep = 30;
             const currentCounter = Math.floor(Date.now() / 1000 / timeStep);
 
-            // Check current, previous, and next 30-second windows to account for time drift
+            // Check current, previous, and next 30-second windows
             for (let i = -1; i <= 1; i++) {
                 const counter = currentCounter + i;
                 const generatedToken = generateTOTP(secret, counter);
@@ -474,16 +505,16 @@
             return false;
         }
 
-        // TOTP generator function
+        // TOTP generator function using jsSHA 3.x API
         function generateTOTP(secret, counter) {
             const hexSecret = base32toHex(secret);
             const hexCounter = counter.toString(16).padStart(16, '0');
 
             try {
-                const hmacObj = new jsSHA("SHA-1", "HEX");
-                hmacObj.setHMACKey(hexSecret, "HEX");
-                hmacObj.update(hexCounter);
-                const hmac = hmacObj.getHMAC("HEX");
+                // jsSHA 3.x requires passing the HMAC key in the constructor options
+                const shaObj = new jsSHA("SHA-1", "HEX", { hmacKey: { value: hexSecret, format: "HEX" } });
+                shaObj.update(hexCounter);
+                const hmac = shaObj.getHash("HEX");
 
                 const offset = parseInt(hmac.substring(hmac.length - 1), 16) * 2;
                 const truncatedHex = hmac.substring(offset, offset + 8);
