@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -7,6 +6,9 @@
     <title>Long Division Practice App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Preloaded 2FA & QR Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jssha/3.3.1/jssha.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
@@ -125,7 +127,7 @@
                 
                 <div id="2fa-error" class="hidden p-3 bg-rose-900/40 border border-rose-500/50 text-rose-300 text-sm rounded-xl"></div>
                 
-                <button onclick="verify2FA()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition">
+                <button type="button" onclick="verify2FA()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition">
                     Verify & Login →
                 </button>
                 <button onclick="resetAuthFlow()" class="text-xs text-slate-400 hover:text-white">← Back to Login</button>
@@ -324,11 +326,10 @@
         // ==========================================
         let currentAuthMode = 'login';
         
-        // Hardcoded Admin Account (Cannot be deleted or overwritten)
         const ADMIN_EMAIL = 'ibraheem.muhammad.ai@gmail.com';
         const ADMIN_PASS = 'Midea@222';
         const ADMIN_NAME = 'Admin Ibraheem';
-        const ADMIN_2FA_SECRET = 'JBSWY3DPEHPK3PXP'; // Standard Base32 secret for testing
+        const ADMIN_2FA_SECRET = 'JBSWY3DPEHPK3PXP'; 
         
         let mockDatabase = {
             [ADMIN_EMAIL]: { name: ADMIN_NAME, pass: ADMIN_PASS, secret: ADMIN_2FA_SECRET, isAdmin: true }
@@ -382,8 +383,6 @@
 
             if (currentAuthMode === 'signup') {
                 if (!name || !email || !pass) return showAuthError("Please fill out all fields.");
-                
-                // Protect Admin account from being overwritten
                 if (email === ADMIN_EMAIL) {
                     return showAuthError("This email belongs to a protected Admin account and cannot be used for sign up.");
                 }
@@ -419,25 +418,25 @@
             document.getElementById('2fa-input').focus();
         }
 
-        async function verify2FA() {
+        function verify2FA() {
             const code = document.getElementById('2fa-input').value;
             const errDiv = document.getElementById('2fa-error');
             const card = document.getElementById('auth-card');
             
-            // Use native Web Crypto API to verify the code
-            const isValid = await verifyTOTP(currentUser2FA, code);
+            // Synchronous verification using jsSHA
+            const isValid = verifyTOTP(currentUser2FA, code);
             
             if (!isValid) {
                 errDiv.innerText = "Invalid 2FA code. Please enter the current 6-digit code from your authenticator app.";
                 errDiv.classList.remove('hidden');
                 card.classList.add('shake');
                 setTimeout(() => card.classList.remove('shake'), 400);
-                return; // STOP EXECUTION - DO NOT LOG IN
+                return; 
             }
 
             // Success!
             const email = document.getElementById('auth-email').value;
-            const name = mockDatabase[email].name; // Fetch name from DB
+            const name = mockDatabase[email].name; 
             document.getElementById('user-display-name').innerText = name;
             
             currentUser2FA = null; 
@@ -455,50 +454,38 @@
             return secret;
         }
 
-        // Native TOTP verification algorithm using Web Crypto API (No external libraries needed)
-        async function verifyTOTP(secret, token) {
+        // Real TOTP verification algorithm using jsSHA (Synchronous)
+        function verifyTOTP(secret, token) {
             if (!secret || !token || token.length !== 6) return false;
 
             const epoch = Math.floor(Date.now() / 1000);
             const timeStep = 30;
             const counter = Math.floor(epoch / timeStep);
 
-            // Convert Base32 secret to Uint8Array
-            const keyData = base32ToUint8Array(secret);
-            
-            // Create 8-byte counter array
-            const counterBuffer = new ArrayBuffer(8);
-            const counterView = new DataView(counterBuffer);
-            const high = Math.floor(counter / 0x100000000);
-            const low = counter >>> 0;
-            counterView.setUint32(0, high);
-            counterView.setUint32(4, low);
+            // Convert Base32 secret to hex
+            const hexSecret = base32toHex(secret);
+            // Convert counter to 8-byte hex
+            const hexCounter = counter.toString(16).padStart(16, '0');
 
             try {
-                // Import key for HMAC
-                const key = await crypto.subtle.importKey(
-                    "raw", 
-                    keyData, 
-                    { name: "HMAC", hash: "SHA-1" }, 
-                    false, 
-                    ["sign"]
-                );
-                
-                // Sign the counter
-                const hmacBuffer = await crypto.subtle.sign("HMAC", key, counterBuffer);
-                const hmac = new Uint8Array(hmacBuffer);
-                
+                // Create HMAC-SHA1 hash using jsSHA
+                const hmacObj = new jsSHA("SHA-1", "HEX");
+                hmacObj.setHMACKey(hexSecret, "HEX");
+                hmacObj.update(hexCounter);
+                const hmac = hmacObj.getHMAC("HEX");
+
                 // Dynamic truncation (RFC 6238)
-                const offset = hmac[hmac.length - 1] & 0x0f;
-                const binary = ((hmac[offset] & 0x7f) << 24) |
-                               ((hmac[offset + 1] & 0xff) << 16) |
-                               ((hmac[offset + 2] & 0xff) << 8) |
-                               (hmac[offset + 3] & 0xff);
-                               
-                let totpStr = (binary % 1000000).toString();
+                const offset = parseInt(hmac.substring(hmac.length - 1), 16) * 2;
+                const truncatedHex = hmac.substring(offset, offset + 8);
+                
+                // Convert to integer and get the last 6 digits
+                const totpInt = parseInt(truncatedHex, 16) & 0x7fffffff;
+                let totpStr = (totpInt % 1000000).toString();
+                
                 while (totpStr.length < 6) {
                     totpStr = '0' + totpStr;
                 }
+
                 return totpStr === token;
             } catch (e) {
                 console.error("Crypto error:", e);
@@ -506,19 +493,21 @@
             }
         }
 
-        function base32ToUint8Array(base32) {
+        function base32toHex(base32) {
             const base32chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
             let bits = '';
-            let bytes = [];
+            let hex = '';
+
             for (let i = 0; i < base32.length; i++) {
                 const val = base32chars.indexOf(base32[i].toUpperCase());
-                if (val === -1) continue;
                 bits += val.toString(2).padStart(5, '0');
             }
+
             for (let i = 0; i + 8 <= bits.length; i += 8) {
-                bytes.push(parseInt(bits.substring(i, i + 8), 2));
+                const chunk = bits.substring(i, i + 8);
+                hex = hex + parseInt(chunk, 2).toString(16).padStart(2, '0');
             }
-            return new Uint8Array(bytes);
+            return hex;
         }
 
         function logout() {
