@@ -9,7 +9,6 @@
     
     <!-- Preloaded 2FA & QR Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jssha/3.3.1/jssha.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
         body {
@@ -53,7 +52,10 @@
         #celebration-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 100; }
         .view { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        #qrcode canvas { border-radius: 0.75rem; border: 4px solid white; }
+        .qr-frame {
+            background: white; padding: 1rem; border-radius: 1rem;
+            display: inline-block; line-height: 0;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-3 md:p-6 flex flex-col items-center justify-start relative">
@@ -105,11 +107,16 @@
                 <h2 class="text-2xl font-extrabold text-white">Setup 2FA</h2>
                 <p class="text-slate-400 text-sm">Scan this QR code with the <strong class="text-white">Google Authenticator App</strong> to link your account.</p>
                 
-                <div id="qrcode" class="flex justify-center my-4"></div>
+                <div class="flex justify-center my-4">
+                    <!-- Direct Image QR Code to avoid generation bugs -->
+                    <div class="qr-frame">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/JBSWY3DPEHPK3PXP.png" alt="2FA QR Code" width="200" height="200">
+                    </div>
+                </div>
                 
                 <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/60 text-left">
                     <p class="text-xs text-slate-400 mb-1">Can't scan? Enter this code manually in your app:</p>
-                    <div class="font-mono text-amber-400 font-bold text-sm break-all" id="manual-2fa-key">KEY</div>
+                    <div class="font-mono text-amber-400 font-bold text-sm break-all" id="manual-2fa-key">JBSWY3DPEHPK3PXP</div>
                 </div>
                 
                 <button onclick="proceedToCodeEntry()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition">
@@ -393,11 +400,6 @@
                 document.getElementById('auth-step-credentials').classList.add('hidden');
                 document.getElementById('auth-step-qr').classList.remove('hidden');
                 
-                const qrText = `otpauth://totp/MathChallenge:${email}?secret=${secret}&issuer=MathChallenge`;
-                document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById('qrcode'), {
-                    text: qrText, width: 200, height: 200, colorDark: "#000000", colorLight: "#ffffff",
-                });
                 document.getElementById('manual-2fa-key').innerText = secret;
                 currentUser2FA = secret; 
 
@@ -462,23 +464,18 @@
             const timeStep = 30;
             const counter = Math.floor(epoch / timeStep);
 
-            // Convert Base32 secret to hex
             const hexSecret = base32toHex(secret);
-            // Convert counter to 8-byte hex
             const hexCounter = counter.toString(16).padStart(16, '0');
 
             try {
-                // Create HMAC-SHA1 hash using jsSHA
                 const hmacObj = new jsSHA("SHA-1", "HEX");
                 hmacObj.setHMACKey(hexSecret, "HEX");
                 hmacObj.update(hexCounter);
                 const hmac = hmacObj.getHMAC("HEX");
 
-                // Dynamic truncation (RFC 6238)
                 const offset = parseInt(hmac.substring(hmac.length - 1), 16) * 2;
                 const truncatedHex = hmac.substring(offset, offset + 8);
                 
-                // Convert to integer and get the last 6 digits
                 const totpInt = parseInt(truncatedHex, 16) & 0x7fffffff;
                 let totpStr = (totpInt % 1000000).toString();
                 
