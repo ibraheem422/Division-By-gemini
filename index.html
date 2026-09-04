@@ -7,9 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Preloaded 2FA Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jssha/3.3.1/jssha.min.js"></script>
-    
     <style>
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -56,6 +53,10 @@
             background: white; padding: 1rem; border-radius: 1rem;
             display: inline-block; line-height: 0;
         }
+        /* Chat Box styles */
+        .chat-container::-webkit-scrollbar { width: 6px; }
+        .chat-container::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
+        .chat-container::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-3 md:p-6 flex flex-col items-center justify-start relative">
@@ -129,8 +130,7 @@
                 <h2 class="text-2xl font-extrabold text-white">Verify Identity</h2>
                 <p class="text-slate-400 text-sm">Enter the 6-digit code from your Google Authenticator app.</p>
                 
-                <!-- TESTING HELPER BOX -->
-                <div class="bg-blue-900/30 border border-blue-500/40 p-4 rounded-xl text-center mt-4">
+                <div id="test-helper-box" class="hidden bg-blue-900/30 border border-blue-500/40 p-4 rounded-xl text-center mt-4">
                     <p class="text-xs text-blue-300 mb-2 font-semibold uppercase tracking-wider">Testing Helper (Expected Code)</p>
                     <div id="test-totp-code" class="font-mono text-3xl font-extrabold text-blue-200 tracking-[0.3em]">------</div>
                     <p class="text-xs text-slate-400 mt-2">Expires in: <span id="test-totp-time" class="font-mono font-bold text-rose-400">30</span>s</p>
@@ -140,7 +140,7 @@
                 
                 <div id="2fa-error" class="hidden p-3 bg-rose-900/40 border border-rose-500/50 text-rose-300 text-sm rounded-xl"></div>
                 
-                <button type="button" onclick="verify2FA()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition">
+                <button type="button" id="verify-btn" onclick="verify2FA()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition">
                     Verify & Login →
                 </button>
                 <button onclick="resetAuthFlow()" class="text-xs text-slate-400 hover:text-white">← Back to Login</button>
@@ -281,6 +281,21 @@
                     </div>
                 </div>
 
+                <!-- TUTOR CHAT BOX -->
+                <div class="bg-slate-800/80 rounded-2xl p-4 border border-sky-500/30 shadow-xl flex flex-col">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-lg">🧠</span>
+                        <h3 class="font-bold text-sky-300 uppercase tracking-wider text-xs">Ask the Tutor</h3>
+                    </div>
+                    <div id="chat-container" class="chat-container h-40 overflow-y-auto space-y-2 bg-slate-900/60 rounded-xl p-3 mb-3 text-sm">
+                        <div class="text-slate-400 text-xs italic">Tutor: Hi! Stuck on a step? Ask me a question like "How do I start?" or "What does subtract mean?".</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" placeholder="Type your question..." class="flex-1 bg-slate-900/60 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-sky-500">
+                        <button onclick="sendChatMessage()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Send</button>
+                    </div>
+                </div>
+
                 <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50 text-xs space-y-2 text-slate-300">
                     <h3 class="font-bold text-slate-200 uppercase tracking-wider text-[11px]">Division Legend</h3>
                     <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-900/50 border border-emerald-500/50 inline-block"></span><strong class="text-emerald-400">Quotient:</strong> Result digits on top</div>
@@ -338,18 +353,40 @@
         // AUTH & 2FA STATE MANAGEMENT
         // ==========================================
         let currentAuthMode = 'login';
-        let testCodeInterval = null; // Interval for the testing helper
+        let testCodeInterval = null; 
         
         const ADMIN_EMAIL = 'ibraheem.muhammad.ai@gmail.com';
         const ADMIN_PASS = 'Midea@222';
         const ADMIN_NAME = 'Admin Ibraheem';
         const ADMIN_2FA_SECRET = 'JBSWY3DPEHPK3PXP'; 
         
-        let mockDatabase = {
+        const defaultDatabase = {
             [ADMIN_EMAIL]: { name: ADMIN_NAME, pass: ADMIN_PASS, secret: ADMIN_2FA_SECRET, isAdmin: true }
-        }; 
-        
+        };
+
+        let mockDatabase = { ...defaultDatabase }; 
         let currentUser2FA = null; 
+
+        // --- LocalStorage Persistence ---
+        function saveDatabase() {
+            try {
+                localStorage.setItem('math_users', JSON.stringify(mockDatabase));
+            } catch (e) { console.error("Failed to save database", e); }
+        }
+
+        function loadDatabase() {
+            try {
+                const stored = localStorage.getItem('math_users');
+                if (stored) {
+                    mockDatabase = JSON.parse(stored);
+                    mockDatabase[ADMIN_EMAIL] = { name: ADMIN_NAME, pass: ADMIN_PASS, secret: ADMIN_2FA_SECRET, isAdmin: true };
+                } else {
+                    mockDatabase = { ...defaultDatabase };
+                }
+            } catch (e) {
+                mockDatabase = { ...defaultDatabase };
+            }
+        }
 
         function switchAuthTab(mode) {
             currentAuthMode = mode;
@@ -373,7 +410,7 @@
         }
 
         function resetAuthFlow() {
-            if (testCodeInterval) clearInterval(testCodeInterval); // Stop timer if going back
+            if (testCodeInterval) clearInterval(testCodeInterval);
             document.getElementById('auth-step-credentials').classList.remove('hidden');
             document.getElementById('auth-step-qr').classList.add('hidden');
             document.getElementById('auth-step-2fa').classList.add('hidden');
@@ -398,12 +435,12 @@
 
             if (currentAuthMode === 'signup') {
                 if (!name || !email || !pass) return showAuthError("Please fill out all fields.");
-                if (email === ADMIN_EMAIL) {
-                    return showAuthError("This email belongs to a protected Admin account and cannot be used for sign up.");
-                }
+                if (email === ADMIN_EMAIL) return showAuthError("This email belongs to a protected Admin account and cannot be used for sign up.");
+                if (mockDatabase[email]) return showAuthError("An account with this email already exists. Please log in.");
                 
                 const secret = generateBase32Secret();
                 mockDatabase[email] = { name, pass, secret, isAdmin: false };
+                saveDatabase(); 
                 
                 document.getElementById('auth-step-credentials').classList.add('hidden');
                 document.getElementById('auth-step-qr').classList.remove('hidden');
@@ -419,7 +456,7 @@
                 document.getElementById('auth-step-credentials').classList.add('hidden');
                 document.getElementById('auth-step-2fa').classList.remove('hidden');
                 document.getElementById('2fa-input').focus();
-                startTestCodeDisplay(); // Start showing the testing code
+                startTestCodeDisplay(); 
             }
         }
 
@@ -427,38 +464,40 @@
             document.getElementById('auth-step-qr').classList.add('hidden');
             document.getElementById('auth-step-2fa').classList.remove('hidden');
             document.getElementById('2fa-input').focus();
-            startTestCodeDisplay(); // Start showing the testing code
+            startTestCodeDisplay(); 
         }
 
-        // ==========================================
-        // TESTING HELPER FUNCTION
-        // ==========================================
         function startTestCodeDisplay() {
             if (testCodeInterval) clearInterval(testCodeInterval);
-            
-            const updateCode = () => {
+            const updateCode = async () => {
                 if (!currentUser2FA) return;
                 const timeStep = 30;
                 const currentCounter = Math.floor(Date.now() / 1000 / timeStep);
-                const code = generateTOTP(currentUser2FA, currentCounter);
+                const code = await generateTOTP(currentUser2FA, currentCounter);
                 const secondsLeft = timeStep - (Math.floor(Date.now() / 1000) % timeStep);
                 
                 const codeEl = document.getElementById('test-totp-code');
                 const timeEl = document.getElementById('test-totp-time');
-                if (codeEl) codeEl.innerText = code;
+                if (codeEl) codeEl.innerText = code || "ERROR";
                 if (timeEl) timeEl.innerText = secondsLeft;
             };
-            
-            updateCode(); // Call immediately
-            testCodeInterval = setInterval(updateCode, 1000); // Update every second
+            updateCode(); 
+            testCodeInterval = setInterval(updateCode, 1000); 
         }
 
-        function verify2FA() {
+        async function verify2FA() {
             const code = document.getElementById('2fa-input').value;
             const errDiv = document.getElementById('2fa-error');
             const card = document.getElementById('auth-card');
+            const btn = document.getElementById('verify-btn');
             
-            const isValid = verifyTOTP(currentUser2FA, code);
+            btn.innerText = 'Verifying...';
+            btn.disabled = true;
+            
+            const isValid = await verifyTOTP(currentUser2FA, code);
+            
+            btn.innerText = 'Verify & Login →';
+            btn.disabled = false;
             
             if (!isValid) {
                 errDiv.innerText = "Invalid 2FA code. Please enter the current 6-digit code from your authenticator app.";
@@ -468,8 +507,7 @@
                 return; 
             }
 
-            // Success!
-            if (testCodeInterval) clearInterval(testCodeInterval); // Stop timer
+            if (testCodeInterval) clearInterval(testCodeInterval); 
             const email = document.getElementById('auth-email').value;
             const name = mockDatabase[email].name; 
             document.getElementById('user-display-name').innerText = name;
@@ -489,42 +527,36 @@
             return secret;
         }
 
-        // TOTP verification with ±30 second time window tolerance
-        function verifyTOTP(secret, token) {
+        async function verifyTOTP(secret, token) {
             if (!secret || !token || token.length !== 6) return false;
-
             const timeStep = 30;
             const currentCounter = Math.floor(Date.now() / 1000 / timeStep);
-
-            // Check current, previous, and next 30-second windows
             for (let i = -1; i <= 1; i++) {
                 const counter = currentCounter + i;
-                const generatedToken = generateTOTP(secret, counter);
+                const generatedToken = await generateTOTP(secret, counter);
                 if (generatedToken === token) return true;
             }
             return false;
         }
 
-        // TOTP generator function using jsSHA 3.x API
-        function generateTOTP(secret, counter) {
+        async function generateTOTP(secret, counter) {
             const hexSecret = base32toHex(secret);
             const hexCounter = counter.toString(16).padStart(16, '0');
+            const keyBytes = hexToBytes(hexSecret);
+            const msgBytes = hexToBytes(hexCounter);
 
             try {
-                // jsSHA 3.x requires passing the HMAC key in the constructor options
-                const shaObj = new jsSHA("SHA-1", "HEX", { hmacKey: { value: hexSecret, format: "HEX" } });
-                shaObj.update(hexCounter);
-                const hmac = shaObj.getHash("HEX");
-
-                const offset = parseInt(hmac.substring(hmac.length - 1), 16) * 2;
-                const truncatedHex = hmac.substring(offset, offset + 8);
-                
-                const totpInt = parseInt(truncatedHex, 16) & 0x7fffffff;
-                let totpStr = (totpInt % 1000000).toString();
-                
-                while (totpStr.length < 6) {
-                    totpStr = '0' + totpStr;
-                }
+                const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+                const hmacBuffer = await crypto.subtle.sign("HMAC", key, msgBytes);
+                const hmacBytes = new Uint8Array(hmacBuffer);
+                const offset = hmacBytes[hmacBytes.length - 1] & 0x0f;
+                const binary = ((hmacBytes[offset] & 0x7f) << 24) |
+                               ((hmacBytes[offset + 1] & 0xff) << 16) |
+                               ((hmacBytes[offset + 2] & 0xff) << 8) |
+                               (hmacBytes[offset + 3] & 0xff);
+                               
+                let totpStr = (binary % 1000000).toString();
+                while (totpStr.length < 6) { totpStr = '0' + totpStr; }
                 return totpStr;
             } catch (e) {
                 console.error("Crypto error:", e);
@@ -532,19 +564,22 @@
             }
         }
 
+        function hexToBytes(hex) {
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) { bytes[i / 2] = parseInt(hex.substr(i, 2), 16); }
+            return bytes;
+        }
+
         function base32toHex(base32) {
             const base32chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-            let bits = '';
-            let hex = '';
-
+            let bits = '', hex = '';
             for (let i = 0; i < base32.length; i++) {
                 const val = base32chars.indexOf(base32[i].toUpperCase());
                 bits += val.toString(2).padStart(5, '0');
             }
-
             for (let i = 0; i + 8 <= bits.length; i += 8) {
                 const chunk = bits.substring(i, i + 8);
-                hex = hex + parseInt(chunk, 2).toString(16).padStart(2, '0');
+                hex += parseInt(chunk, 2).toString(16).padStart(2, '0');
             }
             return hex;
         }
@@ -743,7 +778,7 @@
 
             for (let i = 0; i < data.dividendStr.length; i++) {
                 const numBox = document.createElement('div');
-                numBox.className = "cell-display bg-slate-800 rounded-lg border border-slate-700 text-white font-bold text-xl";
+                numBox.className = "cell-display bg-slate-800 rounded-lg border border-slate-700 text-amber-400 font-bold text-xl";
                 numBox.innerText = data.dividendStr[i];
                 dvdContainer.appendChild(numBox);
             }
@@ -931,12 +966,17 @@
         }
 
         document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' && !e.target.classList.contains('grid-cell-input') && e.target.id !== '2fa-input') return;
-            
-            if (e.target.id === '2fa-input' && e.key === 'Enter') {
+            // Auto-submit 2FA if 6 digits typed
+            if (e.target.id === '2fa-input' && e.target.value.length === 6 && /^\d+$/.test(e.target.value)) {
                 e.preventDefault();
                 verify2FA();
                 return;
+            }
+
+            if (e.target.tagName === 'INPUT' && !e.target.classList.contains('grid-cell-input') && e.target.id !== '2fa-input' && e.target.id !== 'chat-input') return;
+            
+            if (e.target.id === '2fa-input' && e.key === 'Enter') {
+                e.preventDefault(); verify2FA(); return;
             }
 
             if (e.target.tagName === 'INPUT' && !e.target.classList.contains('grid-cell-input')) return;
@@ -1033,6 +1073,72 @@
             }
         }
 
+        // --- TUTOR CHAT LOGIC ---
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const container = document.getElementById('chat-container');
+            // User Message
+            container.innerHTML += `<div class="text-right text-sky-300"><span class="bg-sky-900/50 px-2 py-1 rounded-lg inline-block">${msg}</span></div>`;
+            input.value = '';
+            container.scrollTop = container.scrollHeight;
+
+            // Tutor Reply
+            setTimeout(() => {
+                const reply = getTutorReply(msg);
+                container.innerHTML += `<div class="text-left text-slate-300"><span class="bg-slate-700 px-2 py-1 rounded-lg inline-block">🧠 ${reply}</span></div>`;
+                container.scrollTop = container.scrollHeight;
+            }, 500);
+        }
+
+        function getTutorReply(message) {
+            const msg = message.toLowerCase();
+            const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+            const firstEmpty = inputs.find(i => i.value === "");
+            
+            // If the problem is already solved
+            if (isProblemSolved) {
+                return "Great job! You already solved this problem. Click 'Next Question' to continue!";
+            }
+            
+            // General queries
+            if (msg.includes('quotient') || msg.includes('top')) {
+                return "The quotient is the answer to the division. It goes on top. Ask yourself: how many times does the divisor fit into the working number?";
+            }
+            if (msg.includes('subtract')) {
+                return "After you put a number on top, you multiply it by the divisor. You write that product below, and subtract it from the number above it.";
+            }
+            if (msg.includes('bring down')) {
+                return "After subtracting, you bring down the very next digit from the dividend to sit next to your subtraction answer.";
+            }
+            if (msg.includes('remainder')) {
+                return "The remainder is whatever is left over after your very last subtraction. It goes at the very bottom.";
+            }
+
+            // Step specific queries
+            if (msg.includes('start') || msg.includes('first') || msg.includes('stuck')) {
+                if (firstEmpty) {
+                    firstEmpty.focus();
+                    const id = firstEmpty.id;
+                    if (id.startsWith('q-')) {
+                        return "Look at the dividend (the number inside the bracket). Take the first digit (or first two digits if it's smaller than the divisor). How many times does the divisor go into that number without going over?";
+                    } else if (id.startsWith('prod-')) {
+                        return "You just wrote a number on top! Now, multiply that number by the divisor (the number on the left) to get this number.";
+                    } else if (id.startsWith('rem-')) {
+                        return "Subtract the bottom number from the number right above it. Then, bring down the next single digit from the dividend to sit next to your answer.";
+                    } else if (id.startsWith('finalrem-')) {
+                        return "Subtract the bottom number from the number above it. Whatever is left is your final remainder!";
+                    }
+                }
+                return "It looks like all boxes are filled! Click 'Submit All Steps' to check your work.";
+            }
+
+            // Default response
+            return "I can help with steps! Ask me things like 'How do I start?', 'What does subtract mean?', or 'How do I find the quotient?'";
+        }
+
         function revealSolution() {
             const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
             inputs.forEach(input => {
@@ -1075,6 +1181,10 @@
             const submitBtn = document.getElementById('main-submit-btn');
             submitBtn.className = "px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2";
             submitBtn.innerText = "✓ Submit All Steps";
+            
+            // Clear chat on new question
+            document.getElementById('chat-container').innerHTML = '<div class="text-slate-400 text-xs italic">Tutor: Hi! Stuck on a step? Ask me a question like "How do I start?" or "What does subtract mean?".</div>';
+            
             updateHeaderUI();
             renderAllStepsBoard();
         }
@@ -1171,8 +1281,14 @@
             animateParticles();
         }
 
-        // Initialize App on load (Default to Auth View)
+        // Initialize App on load
         window.onload = function() {
+            loadDatabase(); 
+            
+            if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
+                document.getElementById('test-helper-box').classList.remove('hidden');
+            }
+            
             switchAuthTab('login'); 
             showView('auth-view');
         };
