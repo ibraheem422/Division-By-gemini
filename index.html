@@ -424,7 +424,7 @@
     </div>
 
     <script>
-        // PWA Install Logic
+                // PWA Install Logic
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -433,18 +433,24 @@
             if (installBtn) installBtn.classList.remove('hidden');
         });
 
-        document.addEventListener('click', (e) => {
-            if (e.target && e.target.id === 'install-btn') {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then(() => {
-                        deferredPrompt = null;
-                        document.getElementById('install-btn').classList.add('hidden');
-                    });
-                }
+        // ADDED: Direct click listener for the Install button
+        document.getElementById('install-btn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                document.getElementById('install-btn').classList.add('hidden');
+            } else {
+                // Fallback message if opened locally (file://) instead of Vercel (https://)
+                alert('App installation requires a live web server (HTTPS). Please deploy to Vercel to install!');
             }
         });
 
+        window.addEventListener('appinstalled', () => {
+            const installBtn = document.getElementById('install-btn');
+            if (installBtn) installBtn.classList.add('hidden');
+            deferredPrompt = null;
+        });
         window.addEventListener('appinstalled', () => {
             const installBtn = document.getElementById('install-btn');
             if (installBtn) installBtn.classList.add('hidden');
