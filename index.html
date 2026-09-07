@@ -1,357 +1,474 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PWA Manifest Embed -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Math Challenge","short_name":"MathApp","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#3b82f6","icons":[{"src":"https://upload.wikimedia.org/wikipedia/commons/c/cc/JBSWY3DPEHPK3PXP.png","type":"image/png","sizes":"200x200"}]}'>
+    <meta name="theme-color" content="#0f172a">
     <title>Long Division Practice App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
     
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            min-height: 100vh;
-        }
+        body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .grid-cell-input {
-            width: 2.75rem !important; height: 2.75rem !important;
-            min-width: 2.75rem !important; min-height: 2.75rem !important;
-            text-align: center; font-family: 'JetBrains Mono', monospace;
-            font-weight: 700; font-size: 1.25rem;
-            background-color: #1e293b; color: #ffffff;
-            border: 2px solid #475569; border-radius: 0.5rem;
-            outline: none; transition: all 0.15s ease-in-out;
-            display: inline-flex; align-items: center; justify-content: center;
-            padding: 0; box-sizing: border-box;
+            width: 2.75rem !important; height: 2.75rem !important; min-width: 2.75rem !important; min-height: 2.75rem !important;
+            text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.25rem;
+            border: 2px solid; border-radius: 0.5rem; outline: none; transition: all 0.15s ease-in-out;
+            display: inline-flex; align-items: center; justify-content: center; padding: 0; box-sizing: border-box;
         }
-        .grid-cell-input:focus {
-            border-color: #3b82f6 !important; background-color: #0f172a !important;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
-        }
-        .grid-cell-input.correct { border-color: #10b981 !important; background-color: #064e3b !important; color: #34d399 !important; }
-        .grid-cell-input.incorrect { border-color: #ef4444 !important; background-color: #7f1d1d !important; color: #fca5a5 !important; }
-        .grid-cell-input.hint-highlight { border-color: #f59e0b !important; background-color: #78350f !important; color: #fde047 !important; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.5); }
         .cell-display {
-            width: 2.75rem !important; height: 2.75rem !important;
-            min-width: 2.75rem !important; min-height: 2.75rem !important;
-            display: flex; align-items: center; justify-content: center;
-            font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.25rem;
-            box-sizing: border-box;
+            width: 2.75rem !important; height: 2.75rem !important; min-width: 2.75rem !important; min-height: 2.75rem !important;
+            display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.25rem; box-sizing: border-box;
         }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-6px); }
-            40%, 80% { transform: translateX(6px); }
-        }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
         .shake { animation: shake 0.4s ease-in-out; }
         #celebration-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 100; }
         .view { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .qr-frame {
-            background: white; padding: 1rem; border-radius: 1rem;
-            display: inline-block; line-height: 0;
-        }
-        /* Chat Box styles */
+        .qr-frame { background: white; padding: 1rem; border-radius: 1rem; display: inline-block; line-height: 0; }
         .chat-container::-webkit-scrollbar { width: 6px; }
-        .chat-container::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
-        .chat-container::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .chat-container::-webkit-scrollbar-track { background: transparent; border-radius: 10px; }
+        .chat-container::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-3 md:p-6 flex flex-col items-center justify-start relative">
+<body class="dark:bg-slate-900 dark:text-slate-100 bg-slate-100 text-slate-900 min-h-screen p-3 md:p-6 flex flex-col items-center justify-start relative transition-colors duration-300">
 
     <canvas id="celebration-canvas"></canvas>
 
-    <!-- ========================================== -->
-    <!-- VIEW 1: AUTH (LOGIN / SIGNUP / 2FA)        -->
-    <!-- ========================================== -->
+    <!-- VIEW 1: AUTH -->
     <div id="auth-view" class="view w-full max-w-md flex flex-col items-center justify-center min-h-[90vh] py-8">
-        <div id="auth-card" class="bg-slate-800/80 backdrop-blur p-8 rounded-2xl border border-slate-700/80 shadow-2xl w-full space-y-6">
+        <div id="auth-card" class="bg-white dark:bg-slate-800/80 backdrop-blur p-8 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-2xl w-full space-y-6">
             
-            <!-- STEP 1: CREDENTIALS -->
             <div id="auth-step-credentials">
                 <div class="text-center space-y-2 mb-6">
-                    <div class="w-16 h-16 mx-auto bg-blue-600/20 text-blue-400 rounded-2xl border border-blue-500/30 text-4xl font-bold flex items-center justify-center">➗</div>
-                    <h1 class="text-2xl font-extrabold text-white">Math Challenge</h1>
-                    <p class="text-slate-400 text-sm">Sign in or create an account to practice.</p>
+                    <div class="w-16 h-16 mx-auto bg-blue-600/20 text-blue-500 dark:text-blue-400 rounded-2xl border border-blue-500/30 text-4xl font-bold flex items-center justify-center">M</div>
+                    <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white">Math Challenge</h1>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm">Sign in or create an account to practice.</p>
                 </div>
-
-                <div class="flex bg-slate-900/60 p-1 rounded-xl border border-slate-700/60 mb-6">
+                <div class="flex bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200 dark:border-slate-700/60 mb-6">
                     <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition">Login</button>
-                    <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition">Sign Up</button>
+                    <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-white transition">Sign Up</button>
                 </div>
-
                 <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4">
                     <div id="name-field" class="hidden">
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Name</label>
-                        <input type="text" id="auth-name" class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="John Doe">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Name</label>
+                        <input type="text" id="auth-name" class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="John Doe">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Email</label>
-                        <input type="email" id="auth-email" required class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="student@school.com">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Email</label>
+                        <input type="email" id="auth-email" required class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="student@school.com">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Password</label>
-                        <input type="password" id="auth-password" required class="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="••••••••">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Password</label>
+                        <input type="password" id="auth-password" required class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 outline-none transition" placeholder="Password">
                     </div>
-                    <div id="auth-error" class="hidden p-3 bg-rose-900/40 border border-rose-500/50 text-rose-300 text-sm rounded-xl"></div>
+                    <div id="auth-error" class="hidden p-3 bg-rose-100 border border-rose-300 text-rose-600 dark:bg-rose-900/40 dark:border-rose-500/50 dark:text-rose-300 text-sm rounded-xl"></div>
                     <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
-                        <span id="auth-btn-text">Login</span> →
+                        <span id="auth-btn-text">Login</span> ->
                     </button>
                 </form>
+                <button type="button" onclick="loginAsGuest()" class="w-full py-3 mt-3 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white font-bold rounded-xl shadow-lg transition">Play as Guest</button>
             </div>
 
-            <!-- STEP 2: GOOGLE AUTHENTICATOR SETUP -->
-            <div id="auth-step-qr" class="hidden text-center space-y-4">
-                <div class="w-16 h-16 mx-auto bg-amber-600/20 text-amber-400 rounded-2xl border border-amber-500/30 text-4xl font-bold flex items-center justify-center">📱</div>
-                <h2 class="text-2xl font-extrabold text-white">Setup 2FA</h2>
-                <p class="text-slate-400 text-sm">Scan this QR code with the <strong class="text-white">Google Authenticator App</strong> to link your account.</p>
-                
-                <div class="flex justify-center my-4">
-                    <div class="qr-frame">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/cc/JBSWY3DPEHPK3PXP.png" alt="2FA QR Code" width="200" height="200">
-                    </div>
-                </div>
-                
-                <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/60 text-left">
-                    <p class="text-xs text-slate-400 mb-1">Can't scan? Enter this code manually in your app:</p>
-                    <div class="font-mono text-amber-400 font-bold text-sm break-all" id="manual-2fa-key">JBSWY3DPEHPK3PXP</div>
-                </div>
-                
-                <button onclick="proceedToCodeEntry()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition">
-                    I've Scanned It →
-                </button>
-            </div>
-
-            <!-- STEP 3: 2FA CODE VERIFICATION -->
             <div id="auth-step-2fa" class="hidden text-center space-y-4">
-                <div class="w-16 h-16 mx-auto bg-emerald-600/20 text-emerald-400 rounded-2xl border border-emerald-500/30 text-4xl font-bold flex items-center justify-center">🔐</div>
-                <h2 class="text-2xl font-extrabold text-white">Verify Identity</h2>
-                <p class="text-slate-400 text-sm">Enter the 6-digit code from your Google Authenticator app.</p>
+                <div class="w-16 h-16 mx-auto bg-emerald-600/20 text-emerald-500 dark:text-emerald-400 rounded-2xl border border-emerald-500/30 text-4xl font-bold flex items-center justify-center">2FA</div>
+                <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">Verify Identity</h2>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Enter the 6-digit code from your Google Authenticator app.</p>
                 
-                <div id="test-helper-box" class="hidden bg-blue-900/30 border border-blue-500/40 p-4 rounded-xl text-center mt-4">
-                    <p class="text-xs text-blue-300 mb-2 font-semibold uppercase tracking-wider">Testing Helper (Expected Code)</p>
-                    <div id="test-totp-code" class="font-mono text-3xl font-extrabold text-blue-200 tracking-[0.3em]">------</div>
-                    <p class="text-xs text-slate-400 mt-2">Expires in: <span id="test-totp-time" class="font-mono font-bold text-rose-400">30</span>s</p>
+                <div id="test-helper-box" class="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-500/40 p-4 rounded-xl text-center mt-4">
+                    <p class="text-xs text-blue-600 dark:text-blue-300 mb-2 font-semibold uppercase tracking-wider">Testing Helper (Expected Code)</p>
+                    <div id="test-totp-code" class="font-mono text-3xl font-extrabold text-blue-800 dark:text-blue-200 tracking-[0.3em]">------</div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Expires in: <span id="test-totp-time" class="font-mono font-bold text-rose-500 dark:text-rose-400">30</span>s</p>
                 </div>
 
-                <input type="text" id="2fa-input" maxlength="6" class="w-full text-center tracking-[0.5em] font-mono text-2xl bg-slate-900/60 border border-slate-700/60 rounded-xl px-4 py-3 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 outline-none transition" placeholder="123456">
-                
-                <div id="2fa-error" class="hidden p-3 bg-rose-900/40 border border-rose-500/50 text-rose-300 text-sm rounded-xl"></div>
-                
-                <button type="button" id="verify-btn" onclick="verify2FA()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition">
-                    Verify & Login →
-                </button>
-                <button onclick="resetAuthFlow()" class="text-xs text-slate-400 hover:text-white">← Back to Login</button>
+                <input type="text" id="2fa-input" maxlength="6" class="w-full text-center tracking-[0.5em] font-mono text-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 outline-none transition" placeholder="123456">
+                <div id="2fa-error" class="hidden p-3 bg-rose-100 border border-rose-300 text-rose-600 dark:bg-rose-900/40 dark:border-rose-500/50 dark:text-rose-300 text-sm rounded-xl"></div>
+                <button type="button" id="verify-btn" onclick="verify2FA()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 transition">Verify & Login -></button>
+                <button onclick="resetAuthFlow()" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"><- Back to Login</button>
             </div>
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- VIEW 2: HOMESCREEN / DASHBOARD             -->
-    <!-- ========================================== -->
+    <!-- VIEW 2: HOMESCREEN / DASHBOARD -->
     <div id="home-view" class="view w-full max-w-5xl hidden flex-col items-center justify-start space-y-6">
-        <header class="w-full flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-700/80 shadow-lg">
+        <header class="w-full flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-lg">
             <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-blue-600/20 text-blue-400 rounded-xl border border-blue-500/30 text-2xl font-bold flex items-center justify-center">➗</div>
+                <div class="p-2.5 bg-blue-600/20 text-blue-500 dark:text-blue-400 rounded-xl border border-blue-500/30 text-2xl font-bold flex items-center justify-center">M</div>
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-white">Dashboard</h1>
-                    <p class="text-xs text-slate-400">Welcome back, ready to practice?</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Welcome back, ready to practice?</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-700/60">
-                    <span class="text-xs text-slate-400">Player</span>
-                    <span id="user-display-name" class="font-bold text-sky-400 text-sm">Student</span>
+            <div class="flex items-center gap-3 flex-wrap">
+                <button onclick="toggleTheme()" id="theme-btn" class="p-2 bg-slate-200 dark:bg-slate-700/60 hover:bg-slate-300 dark:hover:bg-slate-600/80 rounded-xl transition border border-slate-300 dark:border-slate-600/50 text-sm font-semibold" title="Toggle Theme">Theme</button>
+                
+                <!-- PWA Install Button -->
+                <button id="install-btn" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl transition shadow-md flex items-center gap-1">Install App</button>
+                
+                <button onclick="openProfileModal()" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white font-semibold text-xs rounded-xl transition shadow-md flex items-center gap-1">Edit Profile</button>
+                <button onclick="openLeaderboardModal()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white font-semibold text-xs rounded-xl transition shadow-md flex items-center gap-1">Leaderboard</button>
+                <button onclick="downloadProgressReport()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl transition shadow-md shadow-blue-600/30 flex items-center gap-1">Report</button>
+                
+                <!-- 2FA Setup Controls -->
+                <button id="setup-2fa-btn" onclick="openSetup2FAModal()" class="hidden px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white font-semibold text-xs rounded-xl transition shadow-md flex items-center gap-1">Setup 2FA</button>
+                <span id="2fa-enabled-badge" class="hidden px-3 py-1.5 bg-emerald-500 text-white font-semibold text-xs rounded-xl flex items-center gap-1">2FA Enabled</span>
+
+                <button id="admin-assign-btn" onclick="openAssignHomeworkModal()" class="hidden px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl transition shadow-md flex items-center gap-2">Assign Homework</button>
+                <button id="admin-students-btn" onclick="openStudentsModal()" class="hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-xl transition shadow-md flex items-center gap-2">View Students</button>
+                <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">Player</span>
+                    <span id="user-display-name" class="font-bold text-sky-500 dark:text-sky-400 text-sm">Student</span>
                 </div>
-                <button onclick="logout()" class="px-3 py-1.5 bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 font-semibold text-xs rounded-xl transition border border-rose-700/50">Logout</button>
+                <button id="delete-acc-btn" onclick="deleteAccount()" class="hidden px-3 py-1.5 bg-slate-400 hover:bg-slate-300 text-slate-900 font-semibold text-xs rounded-xl transition">Delete Account</button>
+                <button onclick="logout()" class="px-3 py-1.5 bg-rose-100 dark:bg-rose-900/40 hover:bg-rose-200 dark:hover:bg-rose-800/60 text-rose-600 dark:text-rose-300 font-semibold text-xs rounded-xl transition border border-rose-300 dark:border-rose-700/50">Logout</button>
             </div>
         </header>
 
-        <div class="bg-slate-800/80 backdrop-blur p-6 md:p-8 rounded-2xl border border-slate-700/80 shadow-xl w-full text-center">
-            <h2 class="text-2xl font-extrabold text-white mb-2">Choose Your Challenge</h2>
-            <p class="text-slate-400 text-sm mb-6 max-w-md mx-auto">Select a difficulty level below. You will need to complete 10 problems to finish the session.</p>
-            
+        <div class="w-full grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col items-center justify-center text-center">
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Total Points</p>
+                <p id="stat-total-points" class="text-3xl font-extrabold text-slate-900 dark:text-emerald-400 mt-1">0</p>
+            </div>
+            <div class="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col items-center justify-center text-center">
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Problems Solved</p>
+                <p id="stat-total-solved" class="text-3xl font-extrabold text-slate-900 dark:text-blue-400 mt-1">0</p>
+            </div>
+            <div class="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col items-center justify-center text-center col-span-2 md:col-span-1">
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase">Overall Accuracy</p>
+                <p id="stat-accuracy" class="text-3xl font-extrabold text-slate-900 dark:text-purple-400 mt-1">0%</p>
+            </div>
+        </div>
+
+        <div id="badges-container" class="hidden w-full bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col items-center justify-center gap-3">
+            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Achievements</h3>
+            <div id="badges-list" class="flex gap-4 text-base font-bold text-slate-700 dark:text-slate-200"></div>
+        </div>
+
+        <div id="homework-card" class="hidden bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-2xl border border-indigo-200 dark:border-indigo-500/40 shadow-lg w-full text-center">
+            <h2 class="text-xl font-extrabold text-indigo-900 dark:text-indigo-300 mb-2">Assigned Homework</h2>
+            <p id="homework-details" class="text-slate-600 dark:text-slate-400 text-sm mb-4"></p>
+            <button onclick="startHomework()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-base rounded-xl shadow-lg transition flex items-center gap-2 mx-auto">Start Homework -></button>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800/80 backdrop-blur p-6 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-xl w-full text-center">
+            <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white mb-2">Choose Your Challenge</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mb-6 max-w-md mx-auto">Select a difficulty level below. You will need to complete 10 problems to finish the session.</p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/60 hover:border-blue-500/50 transition cursor-pointer text-left" onclick="startPractice('easy')">
-                    <div class="text-3xl mb-3">🌱</div>
-                    <h3 class="text-lg font-bold text-white">Level 1</h3>
-                    <p class="text-xs text-slate-400 mt-1 mb-4">Single-digit divisors with exact answers.</p>
-                    <span class="text-xs font-bold text-blue-400 bg-blue-900/30 px-3 py-1 rounded-full border border-blue-500/30">Beginner</span>
+                <div class="bg-slate-50 dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/60 hover:border-blue-500 dark:hover:border-blue-500/50 transition cursor-pointer text-left" onclick="startPractice('easy')">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Level 1</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">Single-digit divisors with exact answers.</p>
+                    <span class="text-xs font-bold text-blue-500 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-full border border-blue-300 dark:border-blue-500/30">Beginner</span>
                 </div>
-                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/60 hover:border-amber-500/50 transition cursor-pointer text-left" onclick="startPractice('medium')">
-                    <div class="text-3xl mb-3">⚡</div>
-                    <h3 class="text-lg font-bold text-white">Level 2</h3>
-                    <p class="text-xs text-slate-400 mt-1 mb-4">Single-digit divisors, larger quotients.</p>
-                    <span class="text-xs font-bold text-amber-400 bg-amber-900/30 px-3 py-1 rounded-full border border-amber-500/30">Intermediate</span>
+                <div class="bg-slate-50 dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/60 hover:border-amber-500 dark:hover:border-amber-500/50 transition cursor-pointer text-left" onclick="startPractice('medium')">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Level 2</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">Single-digit divisors, larger quotients.</p>
+                    <span class="text-xs font-bold text-amber-500 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-full border border-amber-300 dark:border-amber-500/30">Intermediate</span>
                 </div>
-                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/60 hover:border-rose-500/50 transition cursor-pointer text-left" onclick="startPractice('hard')">
-                    <div class="text-3xl mb-3">🔥</div>
-                    <h3 class="text-lg font-bold text-white">Level 3</h3>
-                    <p class="text-xs text-slate-400 mt-1 mb-4">Complex numbers resulting in remainders.</p>
-                    <span class="text-xs font-bold text-rose-400 bg-rose-900/30 px-3 py-1 rounded-full border border-rose-500/30">Advanced</span>
+                <div class="bg-slate-50 dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/60 hover:border-rose-500 dark:hover:border-rose-500/50 transition cursor-pointer text-left" onclick="startPractice('hard')">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Level 3</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">Complex numbers resulting in remainders.</p>
+                    <span class="text-xs font-bold text-rose-500 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/30 px-3 py-1 rounded-full border border-rose-300 dark:border-rose-500/30">Advanced</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- VIEW 3: MAIN PRACTICE WORKSPACE           -->
-    <!-- ========================================== -->
+    <!-- VIEW 3: MAIN PRACTICE WORKSPACE -->
     <div id="practice-view" class="view w-full max-w-5xl hidden space-y-5">
-        
-        <header class="flex flex-wrap items-center justify-between gap-4 bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-700/80 shadow-lg">
+        <header class="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-800/80 backdrop-blur p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-lg">
             <div class="flex items-center gap-3">
-                <button onclick="goHome()" class="p-2 bg-slate-700/60 hover:bg-slate-600/80 rounded-xl transition border border-slate-600/50 text-base">←</button>
+                <button onclick="goHome()" class="p-2 bg-slate-200 dark:bg-slate-700/60 hover:bg-slate-300 dark:hover:bg-slate-600/80 rounded-xl transition border border-slate-300 dark:border-slate-600/50 text-sm font-bold">Back</button>
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-white">Long Division Challenge</h1>
-                    <p class="text-xs text-slate-400">Complete 10 problems • Step-by-step division practice</p>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Long Division Challenge</h1>
+                    <p id="practice-subtitle" class="text-xs text-slate-500 dark:text-slate-400">Complete 10 problems - Step-by-step division practice</p>
                 </div>
             </div>
-
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 bg-slate-900/60 px-3.5 py-1.5 rounded-xl border border-slate-700/60">
-                    <span class="text-xs text-slate-400 font-semibold">Question</span>
-                    <span id="q-counter-display" class="font-mono font-bold text-sky-400 text-base">1 / 10</span>
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-2 bg-rose-100 dark:bg-rose-900/40 px-3 py-1.5 rounded-xl border border-rose-300 dark:border-rose-700/50">
+                    <span class="text-xs text-rose-600 dark:text-rose-400 font-semibold">Streak</span>
+                    <span id="streak-display" class="font-mono font-bold text-rose-500 dark:text-rose-300 text-base">0</span>
                 </div>
-                <div class="flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-700/60">
-                    <span class="text-xs text-slate-400">Score</span>
-                    <span id="score-display" class="font-mono font-bold text-emerald-400 text-base">0</span>
+                <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/60 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold">Question</span>
+                    <span id="q-counter-display" class="font-mono font-bold text-sky-500 dark:text-sky-400 text-base">1 / 10</span>
                 </div>
-                <button onclick="toggleSound()" id="sound-btn" class="p-2 bg-slate-700/60 hover:bg-slate-600/80 rounded-xl transition border border-slate-600/50 text-base" title="Toggle Sound">🔊</button>
+                <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">Score</span>
+                    <span id="score-display" class="font-mono font-bold text-emerald-500 dark:text-emerald-400 text-base">0</span>
+                </div>
+                <button onclick="toggleSound()" id="sound-btn" class="p-2 bg-slate-200 dark:bg-slate-700/60 hover:bg-slate-300 dark:hover:bg-slate-600/80 rounded-xl transition border border-slate-300 dark:border-slate-600/50 text-sm font-bold" title="Toggle Sound">Sound On</button>
             </div>
         </header>
 
-        <div class="w-full bg-slate-800/80 h-2.5 rounded-full overflow-hidden border border-slate-700/50 p-0.5">
+        <div class="w-full bg-slate-200 dark:bg-slate-800/80 h-2.5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700/50 p-0.5">
             <div id="progress-bar-fill" class="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 10%;"></div>
         </div>
 
-        <div id="controls-bar" class="flex flex-wrap items-center justify-between gap-4 bg-slate-800/60 p-3 rounded-2xl border border-slate-700/50">
+        <div id="controls-bar" class="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/50">
             <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-                <button onclick="setDifficulty('easy')" id="diff-easy" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-blue-600 text-white shadow-md shadow-blue-600/30">🌱 Level 1</button>
-                <button onclick="setDifficulty('medium')" id="diff-medium" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-white hover:bg-slate-700/50">⚡ Level 2</button>
-                <button onclick="setDifficulty('hard')" id="diff-hard" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-white hover:bg-slate-700/50">🔥 Level 3</button>
+                <button onclick="setDifficulty('easy')" id="diff-easy" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-blue-600 text-white shadow-md shadow-blue-600/30">Level 1</button>
+                <button onclick="setDifficulty('medium')" id="diff-medium" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50">Level 2</button>
+                <button onclick="setDifficulty('hard')" id="diff-hard" class="diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50">Level 3</button>
             </div>
-
             <div class="flex items-center gap-2 w-full md:w-auto justify-end">
-                <button onclick="giveHint()" class="px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1">💡 Hint</button>
-                <button onclick="revealSolution()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1">👁️ Skip / Reveal</button>
-                <button onclick="restartSession()" class="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-600 transition flex items-center gap-1.5">🔄 Restart</button>
+                <button onclick="giveHint()" class="px-3 py-1.5 bg-amber-100 dark:bg-amber-600/20 hover:bg-amber-200 dark:hover:bg-amber-600/30 text-amber-600 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1">Hint</button>
+                <button onclick="revealSolution()" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-semibold rounded-xl transition flex items-center gap-1">Skip / Reveal</button>
+                <button onclick="restartSession()" class="px-4 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-600 transition flex items-center gap-1.5">Restart</button>
             </div>
         </div>
 
         <div id="practice-workspace" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div id="main-board-card" class="lg:col-span-8 bg-slate-800/80 rounded-2xl p-5 md:p-6 border border-slate-700/80 shadow-2xl relative overflow-hidden flex flex-col items-center min-h-[420px]">
-                <div class="w-full flex items-center justify-between border-b border-slate-700/80 pb-3 mb-6">
+            <div id="main-board-card" class="lg:col-span-8 bg-white dark:bg-slate-800/80 rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-slate-700/80 shadow-2xl relative overflow-hidden flex flex-col items-center min-h-[420px]">
+                <div class="w-full flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-3 mb-6">
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <h2 id="board-title-text" class="font-semibold text-slate-200 text-base sm:text-lg">Complete Long Division Board</h2>
+                        <h2 id="board-title-text" class="font-semibold text-slate-700 dark:text-slate-200 text-base sm:text-lg">Complete Long Division Board</h2>
                     </div>
-                    <span id="problem-summary-badge" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-900/50 border border-indigo-500/30 text-indigo-300">9 ) 161</span>
+                    <span id="problem-summary-badge" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-300 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-300">9 ) 161</span>
                 </div>
                 <div class="w-full flex justify-center py-2 overflow-x-auto min-h-[300px]">
                     <div id="all-steps-container" class="font-mono select-none flex flex-col items-start min-w-[280px]"></div>
                 </div>
                 <div id="feedback-banner" class="w-full mt-4 p-3 rounded-xl border text-center text-sm font-semibold hidden transition-all"></div>
-                <div id="practice-actions" class="w-full flex items-center justify-center gap-3 mt-6 pt-4 border-t border-slate-700/80">
-                    <button id="main-submit-btn" onclick="handlePrimaryAction()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">✓ Submit All Steps</button>
+                <div id="practice-actions" class="w-full flex items-center justify-center gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700/80">
+                    <button id="main-submit-btn" onclick="handlePrimaryAction()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">Submit All Steps</button>
                 </div>
             </div>
 
             <div class="lg:col-span-4 space-y-6">
-                <div class="bg-slate-800/80 rounded-2xl p-5 border border-slate-700/80 shadow-xl">
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-5 border border-slate-200 dark:border-slate-700/80 shadow-xl">
                     <div class="flex items-center justify-between mb-3">
-                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Number Keypad</span>
-                        <span class="text-xs text-slate-500">Tap cell, then tap number</span>
+                        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Number Keypad</span>
+                        <span class="text-xs text-slate-400 dark:text-slate-500">Tap cell, then tap number</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
-                        <button onclick="pressKey('1')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">1</button>
-                        <button onclick="pressKey('2')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">2</button>
-                        <button onclick="pressKey('3')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">3</button>
-                        <button onclick="pressKey('4')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">4</button>
-                        <button onclick="pressKey('5')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">5</button>
-                        <button onclick="pressKey('6')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">6</button>
-                        <button onclick="pressKey('7')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">7</button>
-                        <button onclick="pressKey('8')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">8</button>
-                        <button onclick="pressKey('9')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">9</button>
-                        <button onclick="pressKey('Backspace')" class="h-11 bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 font-semibold text-xs rounded-xl transition border border-rose-700/50 flex items-center justify-center">⌫ Clear</button>
-                        <button onclick="pressKey('0')" class="h-11 bg-slate-700 hover:bg-slate-600 active:bg-slate-500 text-white font-mono font-bold text-lg rounded-xl transition shadow">0</button>
-                        <button onclick="handlePrimaryAction()" class="h-11 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-emerald-600/30 flex items-center justify-center">✓ Submit</button>
+                        <button onclick="pressKey('1')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">1</button>
+                        <button onclick="pressKey('2')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">2</button>
+                        <button onclick="pressKey('3')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">3</button>
+                        <button onclick="pressKey('4')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">4</button>
+                        <button onclick="pressKey('5')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">5</button>
+                        <button onclick="pressKey('6')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">6</button>
+                        <button onclick="pressKey('7')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">7</button>
+                        <button onclick="pressKey('8')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">8</button>
+                        <button onclick="pressKey('9')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">9</button>
+                        <button onclick="pressKey('Backspace')" class="h-11 bg-rose-100 dark:bg-rose-900/40 hover:bg-rose-200 dark:hover:bg-rose-800/60 text-rose-600 dark:text-rose-300 font-semibold text-xs rounded-xl transition border border-rose-300 dark:border-rose-700/50 flex items-center justify-center">Clear</button>
+                        <button onclick="pressKey('0')" class="h-11 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 active:bg-slate-400 dark:active:bg-slate-500 text-slate-900 dark:text-white font-mono font-bold text-lg rounded-xl transition shadow-sm">0</button>
+                        <button onclick="handlePrimaryAction()" class="h-11 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-emerald-600/30 flex items-center justify-center">Submit</button>
                     </div>
                 </div>
 
-                <!-- TUTOR CHAT BOX -->
-                <div class="bg-slate-800/80 rounded-2xl p-4 border border-sky-500/30 shadow-xl flex flex-col">
+                <div class="bg-white dark:bg-slate-800/80 rounded-2xl p-4 border border-sky-200 dark:border-sky-500/30 shadow-xl flex flex-col">
                     <div class="flex items-center gap-2 mb-3">
-                        <span class="text-lg">🧠</span>
-                        <h3 class="font-bold text-sky-300 uppercase tracking-wider text-xs">Ask the Tutor</h3>
+                        <h3 class="font-bold text-sky-600 dark:text-sky-300 uppercase tracking-wider text-xs">Ask the Tutor</h3>
                     </div>
-                    <div id="chat-container" class="chat-container h-40 overflow-y-auto space-y-2 bg-slate-900/60 rounded-xl p-3 mb-3 text-sm">
-                        <div class="text-slate-400 text-xs italic">Tutor: Hi! Stuck on a step? Ask me a question like "How do I start?" or "What does subtract mean?".</div>
+                    <div id="chat-container" class="chat-container h-40 overflow-y-auto space-y-2 bg-slate-100 dark:bg-slate-900/60 rounded-xl p-3 mb-3 text-sm text-slate-700 dark:text-slate-300">
+                        <div class="text-slate-500 dark:text-slate-400 text-xs italic">Tutor: Hi! Stuck on a step? Ask me a question like "How do I start?" or "What does subtract mean?".</div>
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="chat-input" placeholder="Type your question..." class="flex-1 bg-slate-900/60 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-sky-500">
+                        <input type="text" id="chat-input" placeholder="Type your question..." class="flex-1 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-sky-500 transition">
                         <button onclick="sendChatMessage()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition">Send</button>
                     </div>
                 </div>
 
-                <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50 text-xs space-y-2 text-slate-300">
-                    <h3 class="font-bold text-slate-200 uppercase tracking-wider text-[11px]">Division Legend</h3>
-                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-900/50 border border-emerald-500/50 inline-block"></span><strong class="text-emerald-400">Quotient:</strong> Result digits on top</div>
-                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-purple-900/50 border border-purple-500/50 inline-block"></span><strong class="text-purple-300">Subtract:</strong> Product of digit & divisor</div>
-                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-indigo-900/50 border border-indigo-500/50 inline-block"></span><strong class="text-indigo-300">Bring Down:</strong> Remainder + next digit</div>
-                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-rose-900/50 border border-rose-500/50 inline-block"></span><strong class="text-rose-300">Remainder:</strong> Final leftover value</div>
+                <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/50 text-xs space-y-2 text-slate-600 dark:text-slate-300">
+                    <h3 class="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px]">Division Legend</h3>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-900/50 border border-emerald-300 dark:border-emerald-500/50 inline-block"></span><strong class="text-emerald-500 dark:text-emerald-400">Quotient:</strong> Result digits on top</div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-purple-100 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-500/50 inline-block"></span><strong class="text-purple-500 dark:text-purple-300">Subtract:</strong> Product of digit & divisor</div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-indigo-100 dark:bg-indigo-900/50 border border-indigo-300 dark:border-indigo-500/50 inline-block"></span><strong class="text-indigo-500 dark:text-indigo-300">Bring Down:</strong> Remainder + next digit</div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-rose-100 dark:bg-rose-900/50 border border-rose-300 dark:border-rose-500/50 inline-block"></span><strong class="text-rose-500 dark:text-rose-300">Remainder:</strong> Final leftover value</div>
                 </div>
             </div>
         </div>
 
-        <div id="end-summary-card" class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 md:p-10 text-center shadow-2xl max-w-2xl mx-auto space-y-6 hidden">
-            <div class="w-20 h-20 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full flex items-center justify-center text-4xl mx-auto shadow-lg shadow-emerald-500/20 animate-bounce">🏆</div>
+        <div id="end-summary-card" class="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 md:p-10 text-center shadow-2xl max-w-2xl mx-auto space-y-6 hidden">
+            <div class="w-20 h-20 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40 rounded-full flex items-center justify-center text-4xl mx-auto shadow-lg shadow-emerald-500/20 animate-bounce font-bold">A+</div>
             <div class="space-y-2">
-                <h2 class="text-3xl font-extrabold text-white">Session Completed!</h2>
-                <p class="text-slate-400 text-sm">Great job completing all 10 long division problems.</p>
+                <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white">Session Completed!</h2>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Great job completing all 10 long division problems.</p>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
-                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex flex-col items-center">
-                    <span class="text-xs text-slate-400 font-semibold mb-1">Final Score</span>
-                    <span id="final-score-val" class="text-3xl font-mono font-extrabold text-emerald-400">0</span>
+                <div class="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Final Score</span>
+                    <span id="final-score-val" class="text-3xl font-mono font-extrabold text-emerald-500 dark:text-emerald-400">0</span>
                 </div>
-                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex flex-col items-center">
-                    <span class="text-xs text-slate-400 font-semibold mb-1">Solved Cleanly</span>
-                    <span id="final-solved-val" class="text-3xl font-mono font-extrabold text-blue-400">0 / 10</span>
+                <div class="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Solved Cleanly</span>
+                    <span id="final-solved-val" class="text-3xl font-mono font-extrabold text-blue-500 dark:text-blue-400">0 / 10</span>
                 </div>
-                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex flex-col items-center col-span-2 md:col-span-1">
-                    <span class="text-xs text-slate-400 font-semibold mb-1">Accuracy</span>
-                    <span id="final-accuracy-val" class="text-3xl font-mono font-extrabold text-purple-400">0%</span>
+                <div class="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center col-span-2 md:col-span-1">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">Accuracy</span>
+                    <span id="final-accuracy-val" class="text-3xl font-mono font-extrabold text-purple-500 dark:text-purple-400">0%</span>
                 </div>
             </div>
+            <div class="w-full pt-4">
+                <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider mb-4">Time Per Question (Seconds)</h3>
+                <canvas id="session-graph" class="w-full h-32"></canvas>
+            </div>
             <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
-                <button onclick="restartSession()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">🎮 Play Again</button>
-                <button onclick="openAnswersModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2">📋 Show Answers</button>
-                <button onclick="goHome()" class="px-6 py-3 bg-slate-600 hover:bg-slate-500 text-white font-bold text-base rounded-xl shadow-lg transition flex items-center gap-2">🏠 Back to Home</button>
+                <button onclick="restartSession()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2">Play Again</button>
+                <button onclick="openAnswersModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2">Show Answers</button>
+                <button onclick="exportSessionToCSV()" class="px-6 py-3 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-900 dark:text-white font-bold text-base rounded-xl shadow-lg transition flex items-center gap-2">Export CSV</button>
+                <button onclick="goHome()" class="px-6 py-3 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-900 dark:text-white font-bold text-base rounded-xl shadow-lg transition flex items-center gap-2">Back to Home</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Edit Profile</h3>
+                <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl p-1">X</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Name</label>
+                    <input type="text" id="profile-name" class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">New Password</label>
+                    <input type="password" id="profile-password" class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition" placeholder="Leave blank to keep current">
+                </div>
+                <button onclick="saveProfile()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Global Leaderboard</h3>
+                <button onclick="closeLeaderboardModal()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl p-1">X</button>
+            </div>
+            <div id="leaderboard-list" class="space-y-2 overflow-y-auto max-h-80 pr-2"></div>
+        </div>
+    </div>
+
+    <!-- Setup 2FA Modal -->
+    <div id="setup-2fa-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Setup 2FA</h3>
+                <button onclick="closeSetup2FAModal()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl p-1">X</button>
+            </div>
+            <div class="text-center space-y-4">
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Scan this QR code with the <strong class="text-slate-900 dark:text-white">Google Authenticator App</strong>.</p>
+                <div class="flex justify-center my-4">
+                    <div class="qr-frame">
+                        <div id="qrcode-setup"></div>
+                    </div>
+                </div>
+                <div class="bg-slate-100 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 text-left">
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Can't scan? Enter this code manually:</p>
+                    <div class="font-mono text-amber-500 dark:text-amber-400 font-bold text-sm break-all" id="manual-2fa-key-setup">KEY</div>
+                </div>
+                <button onclick="confirmSetup2FA()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition">I've Scanned It -> Enable 2FA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Assign Homework Modal -->
+    <div id="assign-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Assign Homework</h3>
+                <button onclick="closeAssignHomeworkModal()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl p-1">X</button>
+            </div>
+            <div class="space-y-4 overflow-y-auto pr-2 flex-1">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Number of Questions</label>
+                    <input type="number" id="assign-count" min="1" max="10" value="1" class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition" oninput="generateHomeworkInputs()">
+                </div>
+                <div id="homework-inputs-container" class="space-y-4"></div>
+                <button onclick="assignHomework()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg transition">Assign to Students</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin View Students Modal -->
+    <div id="students-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] shadow-2xl space-y-4 flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Student Progress Tracker</h3>
+                <button onclick="closeStudentsModal()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl p-1">X</button>
+            </div>
+            <div id="students-list-container" class="space-y-3 overflow-y-auto pr-2 flex-1"></div>
+            <div class="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+                <button onclick="closeStudentsModal()" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white font-semibold rounded-xl text-sm transition">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Answers Modal -->
     <div id="answers-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] shadow-2xl space-y-4 flex flex-col">
-            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
-                <div class="flex items-center gap-2"><span class="text-xl">📋</span><h3 class="text-lg font-bold text-white">Answer Key (10 Questions)</h3></div>
-                <button onclick="closeAnswersModal()" class="text-slate-400 hover:text-white text-xl p-1">✕</button>
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] shadow-2xl space-y-4 flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Answer Key</h3>
+                <button onclick="closeAnswersModal()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl p-1">X</button>
             </div>
             <div id="answers-list-container" class="space-y-3 overflow-y-auto pr-2 flex-1"></div>
-            <div class="pt-2 border-t border-slate-700 flex justify-end">
-                <button onclick="closeAnswersModal()" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-xl text-sm transition">Close Review</button>
+            <div class="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+                <button onclick="closeAnswersModal()" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white font-semibold rounded-xl text-sm transition">Close Review</button>
             </div>
         </div>
     </div>
 
     <script>
+        // PWA Install Logic
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('install-btn');
+            if (installBtn) installBtn.classList.remove('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'install-btn') {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(() => {
+                        deferredPrompt = null;
+                        document.getElementById('install-btn').classList.add('hidden');
+                    });
+                }
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            const installBtn = document.getElementById('install-btn');
+            if (installBtn) installBtn.classList.add('hidden');
+            deferredPrompt = null;
+        });
+
         // ==========================================
-        // AUTH & 2FA STATE MANAGEMENT
+        // THEME & STATE MANAGEMENT
         // ==========================================
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+        }
+
         let currentAuthMode = 'login';
         let testCodeInterval = null; 
         
@@ -359,19 +476,21 @@
         const ADMIN_PASS = 'Midea@222';
         const ADMIN_NAME = 'Admin Ibraheem';
         const ADMIN_2FA_SECRET = 'JBSWY3DPEHPK3PXP'; 
+        const TEST_USER_EMAIL = 'testuser@gmail.com';
         
         const defaultDatabase = {
-            [ADMIN_EMAIL]: { name: ADMIN_NAME, pass: ADMIN_PASS, secret: ADMIN_2FA_SECRET, isAdmin: true }
+            [ADMIN_EMAIL]: { name: ADMIN_NAME, pass: ADMIN_PASS, secret: ADMIN_2FA_SECRET, isAdmin: true, totalPoints: 0, totalSolved: 0, attempts: 0, badges: [], homeworkResults: {} },
+            [TEST_USER_EMAIL]: { name: 'Test User', pass: 'password', secret: null, isAdmin: false, totalPoints: 50, totalSolved: 5, attempts: 12, badges: [], homeworkResults: {} }
         };
 
         let mockDatabase = { ...defaultDatabase }; 
+        let currentUserEmail = null;
         let currentUser2FA = null; 
+        let currentHomework = null;
+        let pending2FASecret = null;
 
-        // --- LocalStorage Persistence ---
         function saveDatabase() {
-            try {
-                localStorage.setItem('math_users', JSON.stringify(mockDatabase));
-            } catch (e) { console.error("Failed to save database", e); }
+            try { localStorage.setItem('math_users', JSON.stringify(mockDatabase)); } catch (e) {}
         }
 
         function loadDatabase() {
@@ -379,13 +498,25 @@
                 const stored = localStorage.getItem('math_users');
                 if (stored) {
                     mockDatabase = JSON.parse(stored);
-                    mockDatabase[ADMIN_EMAIL] = { name: ADMIN_NAME, pass: ADMIN_PASS, secret: ADMIN_2FA_SECRET, isAdmin: true };
+                    mockDatabase[ADMIN_EMAIL] = { name: ADMIN_NAME, pass: ADMIN_PASS, secret: ADMIN_2FA_SECRET, isAdmin: true, totalPoints: mockDatabase[ADMIN_EMAIL]?.totalPoints || 0, totalSolved: mockDatabase[ADMIN_EMAIL]?.totalSolved || 0, attempts: mockDatabase[ADMIN_EMAIL]?.attempts || 0, badges: mockDatabase[ADMIN_EMAIL]?.badges || [], homeworkResults: mockDatabase[ADMIN_EMAIL]?.homeworkResults || {} };
+                    if (!mockDatabase[TEST_USER_EMAIL]) {
+                        mockDatabase[TEST_USER_EMAIL] = defaultDatabase[TEST_USER_EMAIL];
+                    }
                 } else {
                     mockDatabase = { ...defaultDatabase };
                 }
-            } catch (e) {
-                mockDatabase = { ...defaultDatabase };
-            }
+            } catch (e) { mockDatabase = { ...defaultDatabase }; }
+        }
+
+        function saveHomework(hw) {
+            hw.id = Date.now(); 
+            localStorage.setItem('math_homework', JSON.stringify(hw));
+            currentHomework = hw;
+        }
+
+        function loadHomework() {
+            const stored = localStorage.getItem('math_homework');
+            if (stored) currentHomework = JSON.parse(stored);
         }
 
         function switchAuthTab(mode) {
@@ -398,12 +529,12 @@
 
             if (mode === 'login') {
                 loginTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition';
-                signupTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition';
+                signupTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
                 nameField.classList.add('hidden');
                 btnText.innerText = 'Login';
             } else {
                 signupTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg bg-blue-600 text-white transition';
-                loginTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-white transition';
+                loginTab.className = 'flex-1 py-2 text-sm font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
                 nameField.classList.remove('hidden');
                 btnText.innerText = 'Sign Up';
             }
@@ -412,7 +543,6 @@
         function resetAuthFlow() {
             if (testCodeInterval) clearInterval(testCodeInterval);
             document.getElementById('auth-step-credentials').classList.remove('hidden');
-            document.getElementById('auth-step-qr').classList.add('hidden');
             document.getElementById('auth-step-2fa').classList.add('hidden');
             document.getElementById('auth-error').classList.add('hidden');
             document.getElementById('2fa-error').classList.add('hidden');
@@ -435,36 +565,50 @@
 
             if (currentAuthMode === 'signup') {
                 if (!name || !email || !pass) return showAuthError("Please fill out all fields.");
-                if (email === ADMIN_EMAIL) return showAuthError("This email belongs to a protected Admin account and cannot be used for sign up.");
+                if (email === ADMIN_EMAIL) return showAuthError("This email belongs to a protected Admin account.");
+                if (email === TEST_USER_EMAIL) return showAuthError("This email is reserved for testing.");
                 if (mockDatabase[email]) return showAuthError("An account with this email already exists. Please log in.");
                 
-                const secret = generateBase32Secret();
-                mockDatabase[email] = { name, pass, secret, isAdmin: false };
+                mockDatabase[email] = { name, pass, secret: null, isAdmin: false, totalPoints: 0, totalSolved: 0, attempts: 0, badges: [], homeworkResults: {} };
                 saveDatabase(); 
                 
-                document.getElementById('auth-step-credentials').classList.add('hidden');
-                document.getElementById('auth-step-qr').classList.remove('hidden');
+                currentUserEmail = email;
+                document.getElementById('user-display-name').innerText = name;
                 
-                document.getElementById('manual-2fa-key').innerText = secret;
-                currentUser2FA = secret; 
+                updateHomeStats();
+                showView('home-view');
 
             } else {
                 if (!mockDatabase[email]) return showAuthError("User not found. Please sign up first.");
                 if (mockDatabase[email].pass !== pass) return showAuthError("Incorrect password. Please try again.");
                 
-                currentUser2FA = mockDatabase[email].secret;
-                document.getElementById('auth-step-credentials').classList.add('hidden');
-                document.getElementById('auth-step-2fa').classList.remove('hidden');
-                document.getElementById('2fa-input').focus();
-                startTestCodeDisplay(); 
+                currentUserEmail = email;
+
+                if (email === TEST_USER_EMAIL || !mockDatabase[email].secret) {
+                    const name = mockDatabase[email].name; 
+                    document.getElementById('user-display-name').innerText = name;
+                    updateHomeStats();
+                    showView('home-view');
+                } else {
+                    currentUser2FA = mockDatabase[email].secret;
+                    document.getElementById('auth-step-credentials').classList.add('hidden');
+                    document.getElementById('auth-step-2fa').classList.remove('hidden');
+                    document.getElementById('2fa-input').focus();
+                    startTestCodeDisplay(); 
+                }
             }
         }
 
-        function proceedToCodeEntry() {
-            document.getElementById('auth-step-qr').classList.add('hidden');
-            document.getElementById('auth-step-2fa').classList.remove('hidden');
-            document.getElementById('2fa-input').focus();
-            startTestCodeDisplay(); 
+        function loginAsGuest() {
+            const guestId = `guest_${Date.now()}@guest.local`;
+            mockDatabase[guestId] = { name: 'Guest', pass: 'guest', secret: null, isAdmin: false, totalPoints: 0, totalSolved: 0, attempts: 0, badges: [], homeworkResults: {} };
+            saveDatabase(); 
+            
+            currentUserEmail = guestId;
+            document.getElementById('user-display-name').innerText = 'Guest';
+            
+            updateHomeStats();
+            showView('home-view');
         }
 
         function startTestCodeDisplay() {
@@ -475,7 +619,6 @@
                 const currentCounter = Math.floor(Date.now() / 1000 / timeStep);
                 const code = await generateTOTP(currentUser2FA, currentCounter);
                 const secondsLeft = timeStep - (Math.floor(Date.now() / 1000) % timeStep);
-                
                 const codeEl = document.getElementById('test-totp-code');
                 const timeEl = document.getElementById('test-totp-time');
                 if (codeEl) codeEl.innerText = code || "ERROR";
@@ -496,7 +639,7 @@
             
             const isValid = await verifyTOTP(currentUser2FA, code);
             
-            btn.innerText = 'Verify & Login →';
+            btn.innerText = 'Verify & Login ->';
             btn.disabled = false;
             
             if (!isValid) {
@@ -508,22 +651,21 @@
             }
 
             if (testCodeInterval) clearInterval(testCodeInterval); 
-            const email = document.getElementById('auth-email').value;
-            const name = mockDatabase[email].name; 
+            const name = mockDatabase[currentUserEmail].name; 
             document.getElementById('user-display-name').innerText = name;
             
             currentUser2FA = null; 
             document.getElementById('2fa-input').value = ""; 
             document.getElementById('2fa-error').classList.add('hidden');
+            
+            updateHomeStats();
             showView('home-view');
         }
 
         function generateBase32Secret() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
             let secret = '';
-            for (let i = 0; i < 16; i++) {
-                secret += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
+            for (let i = 0; i < 16; i++) secret += chars.charAt(Math.floor(Math.random() * chars.length));
             return secret;
         }
 
@@ -554,14 +696,10 @@
                                ((hmacBytes[offset + 1] & 0xff) << 16) |
                                ((hmacBytes[offset + 2] & 0xff) << 8) |
                                (hmacBytes[offset + 3] & 0xff);
-                               
                 let totpStr = (binary % 1000000).toString();
                 while (totpStr.length < 6) { totpStr = '0' + totpStr; }
                 return totpStr;
-            } catch (e) {
-                console.error("Crypto error:", e);
-                return null;
-            }
+            } catch (e) { return null; }
         }
 
         function hexToBytes(hex) {
@@ -586,13 +724,297 @@
 
         function logout() {
             document.getElementById('auth-form').reset();
+            currentUserEmail = null;
             showView('auth-view');
         }
 
-        function goHome() { showView('home-view'); }
+        function deleteAccount() {
+            if (!currentUserEmail) return;
+            if (confirm("Are you sure you want to permanently delete your account? This cannot be undone.")) {
+                delete mockDatabase[currentUserEmail];
+                saveDatabase();
+                logout();
+            }
+        }
+
+        function goHome() { 
+            updateHomeStats();
+            showView('home-view'); 
+        }
+
+        function updateHomeStats() {
+            if (!currentUserEmail) return;
+            const user = mockDatabase[currentUserEmail];
+            document.getElementById('stat-total-points').innerText = user.totalPoints || 0;
+            document.getElementById('stat-total-solved').innerText = user.totalSolved || 0;
+            const attempts = user.attempts || 0;
+            const solved = user.totalSolved || 0;
+            const accuracy = attempts > 0 ? Math.round((solved / attempts) * 100) : 0;
+            document.getElementById('stat-accuracy').innerText = `${accuracy}%`;
+
+            if (user.isAdmin) {
+                document.getElementById('admin-assign-btn').classList.remove('hidden');
+                document.getElementById('admin-students-btn').classList.remove('hidden');
+                document.getElementById('delete-acc-btn').classList.add('hidden');
+            } else {
+                document.getElementById('admin-assign-btn').classList.add('hidden');
+                document.getElementById('admin-students-btn').classList.add('hidden');
+                document.getElementById('delete-acc-btn').classList.remove('hidden');
+            }
+
+            if (currentUserEmail.includes('@guest.local')) {
+                document.getElementById('setup-2fa-btn').classList.add('hidden');
+                document.getElementById('2fa-enabled-badge').classList.add('hidden');
+            } else if (currentUserEmail === TEST_USER_EMAIL) {
+                document.getElementById('setup-2fa-btn').classList.add('hidden');
+                document.getElementById('2fa-enabled-badge').classList.add('hidden');
+            } else if (user.secret) {
+                document.getElementById('setup-2fa-btn').classList.add('hidden');
+                document.getElementById('2fa-enabled-badge').classList.remove('hidden');
+            } else {
+                document.getElementById('setup-2fa-btn').classList.remove('hidden');
+                document.getElementById('2fa-enabled-badge').classList.add('hidden');
+            }
+
+            const badgesList = document.getElementById('badges-list');
+            badgesList.innerHTML = '';
+            if (user.badges && user.badges.length > 0) {
+                document.getElementById('badges-container').classList.remove('hidden');
+                user.badges.forEach(b => {
+                    badgesList.innerHTML += `<span title="${b.name}" class="cursor-help px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-xs">${b.name}</span>`;
+                });
+            } else {
+                document.getElementById('badges-container').classList.add('hidden');
+            }
+
+            loadHomework();
+            if (currentHomework && currentHomework.questions && currentHomework.questions.length > 0) {
+                document.getElementById('homework-card').classList.remove('hidden');
+                const hwStatus = user.homeworkResults && user.homeworkResults[currentHomework.id] ? 
+                    `<span class="text-emerald-500 font-bold">(Completed! Score: ${user.homeworkResults[currentHomework.id].score})</span>` : 
+                    `<span class="text-amber-500 font-bold">(Not started)</span>`;
+                document.getElementById('homework-details').innerHTML = `Solve ${currentHomework.questions.length} custom problems assigned by your teacher. <br> Status: ${hwStatus}`;
+            } else {
+                document.getElementById('homework-card').classList.add('hidden');
+            }
+        }
+
+        function downloadProgressReport() {
+            if (!currentUserEmail) return;
+            const user = mockDatabase[currentUserEmail];
+            const attempts = user.attempts || 0;
+            const solved = user.totalSolved || 0;
+            const accuracy = attempts > 0 ? Math.round((solved / attempts) * 100) : 0;
+
+            const reportText = `
+========================================
+  MATH CHALLENGE - PROGRESS REPORT
+========================================
+
+Student Name: ${user.name}
+Email: ${currentUserEmail}
+Report Date: ${new Date().toLocaleString()}
+
+----------------------------------------
+  OVERALL STATISTICS
+----------------------------------------
+Total Points Earned:   ${user.totalPoints || 0}
+Problems Solved:       ${solved}
+Total Problems Attempted: ${attempts}
+Overall Accuracy:      ${accuracy}%
+
+----------------------------------------
+  ACHIEVEMENTS
+----------------------------------------
+ ${user.badges && user.badges.length > 0 ? user.badges.map(b => `- ${b.name}`).join('\n') : 'No badges earned yet.'}
+
+Keep up the great work!
+`;
+            const blob = new Blob([reportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Math_Progress_${user.name.replace(/\s/g, '_')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- Profile Functions ---
+        function openProfileModal() {
+            if (!currentUserEmail) return;
+            const user = mockDatabase[currentUserEmail];
+            document.getElementById('profile-name').value = user.name;
+            document.getElementById('profile-password').value = '';
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+        function closeProfileModal() { document.getElementById('profile-modal').classList.add('hidden'); }
+        function saveProfile() {
+            if (!currentUserEmail) return;
+            const newName = document.getElementById('profile-name').value.trim();
+            const newPass = document.getElementById('profile-password').value;
+            if (!newName) return alert("Name cannot be empty.");
+            const user = mockDatabase[currentUserEmail];
+            user.name = newName;
+            if (newPass) user.pass = newPass;
+            saveDatabase();
+            document.getElementById('user-display-name').innerText = newName;
+            closeProfileModal();
+            alert("Profile updated successfully!");
+        }
+
+        // --- Leaderboard Functions ---
+        function openLeaderboardModal() {
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = '';
+            const students = Object.keys(mockDatabase).filter(e => e !== ADMIN_EMAIL).map(e => mockDatabase[e]);
+            students.sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+            
+            students.forEach((u, i) => {
+                const rank = i + 1;
+                const isMe = u.name === mockDatabase[currentUserEmail]?.name;
+                list.innerHTML += `
+                    <div class="flex items-center justify-between p-3 rounded-xl ${isMe ? 'bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-500/30' : 'bg-slate-100 dark:bg-slate-700/60'}">
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-lg ${rank === 1 ? 'text-amber-500' : 'text-slate-500 dark:text-slate-400'} w-6">#${rank}</span>
+                            <div>
+                                <p class="font-bold text-sm text-slate-900 dark:text-white">${u.name} ${isMe ? '(You)' : ''}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">${u.totalSolved || 0} solved</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-extrabold text-emerald-500 dark:text-emerald-400">${u.totalPoints || 0}</p>
+                            <p class="text-[10px] text-slate-400 uppercase">Points</p>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+        }
+        function closeLeaderboardModal() { document.getElementById('leaderboard-modal').classList.add('hidden'); }
+
+        // --- 2FA Setup Modal Functions ---
+        function openSetup2FAModal() {
+            pending2FASecret = generateBase32Secret();
+            document.getElementById('manual-2fa-key-setup').innerText = pending2FASecret;
+            const qrText = `otpauth://totp/MathChallenge:${currentUserEmail}?secret=${pending2FASecret}&issuer=MathChallenge`;
+            document.getElementById('qrcode-setup').innerHTML = "";
+            new QRCode(document.getElementById('qrcode-setup'), {
+                text: qrText, width: 200, height: 200, colorDark: "#000000", colorLight: "#ffffff",
+            });
+            document.getElementById('setup-2fa-modal').classList.remove('hidden');
+        }
+        function closeSetup2FAModal() { document.getElementById('setup-2fa-modal').classList.add('hidden'); }
+        function confirmSetup2FA() {
+            if (!currentUserEmail || !pending2FASecret) return;
+            const user = mockDatabase[currentUserEmail];
+            user.secret = pending2FASecret;
+            saveDatabase();
+            pending2FASecret = null;
+            closeSetup2FAModal();
+            updateHomeStats();
+            alert("2FA has been successfully enabled! You will need it for future logins.");
+        }
+
+        // --- Homework Admin Functions ---
+        function openAssignHomeworkModal() { 
+            document.getElementById('assign-modal').classList.remove('hidden'); 
+            generateHomeworkInputs(); 
+        }
+        function closeAssignHomeworkModal() { document.getElementById('assign-modal').classList.add('hidden'); }
+
+        function generateHomeworkInputs() {
+            const count = Math.min(10, Math.max(1, parseInt(document.getElementById('assign-count').value) || 1));
+            const container = document.getElementById('homework-inputs-container');
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Q${i+1} Divisor</label>
+                            <input type="number" id="assign-divisor-${i}" class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition" placeholder="e.g., 12">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Q${i+1} Dividend</label>
+                            <input type="number" id="assign-dividend-${i}" class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-700/60 rounded-xl px-4 py-3 text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition" placeholder="e.g., 345">
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function assignHomework() {
+            const count = Math.min(10, Math.max(1, parseInt(document.getElementById('assign-count').value) || 1));
+            const questions = [];
+            for (let i = 0; i < count; i++) {
+                const d = parseInt(document.getElementById(`assign-divisor-${i}`).value);
+                const dvd = parseInt(document.getElementById(`assign-dividend-${i}`).value);
+                if (!d || !dvd || dvd < d) {
+                    alert(`Invalid numbers for Question ${i+1}. Dividend must be larger than divisor.`);
+                    return;
+                }
+                questions.push({ divisor: d, dividend: dvd });
+            }
+            saveHomework({ questions: questions });
+            closeAssignHomeworkModal();
+            alert("Homework assigned! Students will see it on their dashboard.");
+            updateHomeStats();
+        }
+
+        // --- Admin View Students Functions ---
+        function openStudentsModal() {
+            const container = document.getElementById('students-list-container');
+            container.innerHTML = '';
+            loadHomework();
+            
+            Object.keys(mockDatabase).forEach(email => {
+                const u = mockDatabase[email];
+                if (email === ADMIN_EMAIL) return; 
+                
+                const attempts = u.attempts || 0;
+                const solved = u.totalSolved || 0;
+                const acc = attempts > 0 ? Math.round((solved / attempts) * 100) : 0;
+                
+                let hwStatus = '<span class="text-rose-500">No homework assigned</span>';
+                if (currentHomework) {
+                    const res = u.homeworkResults && u.homeworkResults[currentHomework.id];
+                    hwStatus = res ? `<span class="text-emerald-500">Completed (Score: ${res.score})</span>` : '<span class="text-amber-500">Not started</span>';
+                }
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
+                card.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">${u.name} <span class="text-[10px] font-normal text-slate-400">${email}</span></div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400 font-mono flex gap-3">
+                            <span>Points: ${u.totalPoints || 0}</span> | 
+                            <span>Solved: ${solved}</span> | 
+                            <span>Acc: ${acc}%</span>
+                        </div>
+                    </div>
+                    <div class="text-xs font-semibold">${hwStatus}</div>
+                `;
+                container.appendChild(card);
+            });
+            
+            document.getElementById('students-modal').classList.remove('hidden');
+        }
+        function closeStudentsModal() { document.getElementById('students-modal').classList.add('hidden'); }
+
+        function startHomework() {
+            if (!currentHomework || !currentHomework.questions || currentHomework.questions.length === 0) return;
+            difficulty = 'custom';
+            TOTAL_QUESTIONS = currentHomework.questions.length;
+            document.getElementById('practice-subtitle').innerText = "Custom Homework Assignment";
+            showView('practice-view');
+            restartSession();
+        }
 
         function startPractice(level) {
             setDifficulty(level);
+            TOTAL_QUESTIONS = 10;
+            document.getElementById('practice-subtitle').innerText = "Complete 10 problems - Step-by-step division practice";
             showView('practice-view');
             restartSession();
         }
@@ -609,15 +1031,18 @@
         // ==========================================
         // CORE APP LOGIC 
         // ==========================================
-        const TOTAL_QUESTIONS = 10;
+        let TOTAL_QUESTIONS = 10;
         let currentQuestionIndex = 1;
         let divisor = 9, dividend = 161;
         let difficulty = 'easy';
         let score = 0;
+        let streak = 0;
         let soundEnabled = true;
         let isProblemSolved = false;
         let focusedInputId = null;
         let questionHistory = []; 
+        let sessionStartTime = 0;
+        let questionStartTime = 0;
 
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
@@ -648,25 +1073,33 @@
                     gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
                     osc.start(now); osc.stop(now + 0.05);
                 }
-            } catch (e) { console.log("Audio play blocked"); }
+            } catch (e) {}
         }
 
         function toggleSound() {
             soundEnabled = !soundEnabled;
-            document.getElementById('sound-btn').innerText = soundEnabled ? '🔊' : '🔇';
+            document.getElementById('sound-btn').innerText = soundEnabled ? 'Sound On' : 'Sound Off';
         }
 
         function setDifficulty(level) {
             difficulty = level;
             document.querySelectorAll('.diff-btn').forEach(btn => {
-                btn.className = 'diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-400 hover:text-white hover:bg-slate-700/50';
+                btn.className = 'diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50';
             });
             const activeBtn = document.getElementById(`diff-${level}`);
             if (activeBtn) activeBtn.className = 'diff-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition bg-blue-600 text-white shadow-md shadow-blue-600/30';
+            
+            document.getElementById('practice-subtitle').innerText = "Complete 10 problems - Step-by-step division practice";
             restartSession();
         }
 
         function generateProblemValues() {
+            if (difficulty === 'custom' && currentHomework && currentHomework.questions && currentHomework.questions[currentQuestionIndex - 1]) {
+                const q = currentHomework.questions[currentQuestionIndex - 1];
+                divisor = q.divisor;
+                dividend = q.dividend;
+                return;
+            }
             if (difficulty === 'easy') {
                 divisor = Math.floor(Math.random() * 8) + 2;
                 const quotient = Math.floor(Math.random() * 9) + 1;
@@ -690,26 +1123,15 @@
             for (let i = 0; i < dvdStr.length; i++) {
                 const digit = parseInt(dvdStr[i], 10);
                 workingVal = workingVal * 10 + digit;
-                if (workingVal < div && i === 0 && dvdStr.length > 1) {
-                    quotientStr += " ";
-                    continue;
-                }
+                if (workingVal < div && i === 0 && dvdStr.length > 1) { quotientStr += " "; continue; }
                 const qDigit = Math.floor(workingVal / div);
                 const product = qDigit * div;
                 const remainder = workingVal - product;
                 quotientStr += qDigit.toString();
-                steps.push({
-                    digitIndex: i, workingVal: workingVal, qDigit: qDigit,
-                    product: product, remainder: remainder,
-                    nextDigit: (i < dvdStr.length - 1) ? parseInt(dvdStr[i + 1], 10) : null
-                });
+                steps.push({ digitIndex: i, workingVal: workingVal, qDigit: qDigit, product: product, remainder: remainder, nextDigit: (i < dvdStr.length - 1) ? parseInt(dvdStr[i + 1], 10) : null });
                 workingVal = remainder;
             }
-            return {
-                divisor: div, dividend: dvd, dividendStr: dvdStr,
-                quotientStr: Math.floor(dvd / div).toString(),
-                finalRemainder: dvd % div, steps: steps
-            };
+            return { divisor: div, dividend: dvd, dividendStr: dvdStr, quotientStr: Math.floor(dvd / div).toString(), finalRemainder: dvd % div, steps: steps };
         }
 
         function renderAllStepsBoard() {
@@ -731,7 +1153,7 @@
             const quotientRow = document.createElement('div');
             quotientRow.className = "flex items-center space-x-2 mb-1";
             const divSpacer = document.createElement('div');
-            divSpacer.className = "w-16 text-right font-bold text-amber-400 pr-2 text-base";
+            divSpacer.className = "w-16 text-right font-bold text-amber-500 dark:text-amber-400 pr-2 text-base";
             quotientRow.appendChild(divSpacer);
             const bracketSpacer = document.createElement('div');
             bracketSpacer.className = "w-4";
@@ -741,24 +1163,23 @@
             const padCount = data.dividendStr.length - data.quotientStr.length;
 
             for (let i = 0; i < data.dividendStr.length; i++) {
-                if (i < padCount) {
-                    qContainer.appendChild(makeCell(""));
-                } else {
+                if (i < padCount) { qContainer.appendChild(makeCell("")); } 
+                else {
                     const qIndex = i - padCount;
                     const expectedDigit = data.quotientStr[qIndex];
                     const input = document.createElement('input');
                     input.type = "text"; input.maxLength = 1;
                     input.id = `q-${qIndex}`;
                     input.dataset.expected = expectedDigit;
-                    input.className = "grid-cell-input";
+                    input.className = "grid-cell-input bg-slate-100 dark:bg-slate-900/60 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-blue-500";
                     input.addEventListener('focus', () => focusedInputId = input.id);
                     input.addEventListener('input', (e) => handleInputEvent(e, input));
                     qContainer.appendChild(makeCell(input));
                 }
             }
             const qBadge = document.createElement('span');
-            qBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center";
-            qBadge.innerText = "← Quotient";
+            qBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 font-semibold flex items-center";
+            qBadge.innerText = "Quotient";
             qContainer.appendChild(qBadge);
             quotientRow.appendChild(qContainer);
             container.appendChild(quotientRow);
@@ -766,11 +1187,11 @@
             const mainRow = document.createElement('div');
             mainRow.className = "flex items-center space-x-2 pb-1";
             const divBox = document.createElement('div');
-            divBox.className = "w-16 text-right font-bold text-amber-400 text-xl pr-2";
+            divBox.className = "w-16 text-right font-bold text-amber-500 dark:text-amber-400 text-xl pr-2";
             divBox.innerText = data.divisor;
             mainRow.appendChild(divBox);
             const bracketBox = document.createElement('div');
-            bracketBox.className = "w-4 text-blue-400 font-bold text-2xl text-center";
+            bracketBox.className = "w-4 text-blue-500 dark:text-blue-400 font-bold text-2xl text-center";
             bracketBox.innerText = ")";
             mainRow.appendChild(bracketBox);
             const dvdContainer = document.createElement('div');
@@ -778,13 +1199,13 @@
 
             for (let i = 0; i < data.dividendStr.length; i++) {
                 const numBox = document.createElement('div');
-                numBox.className = "cell-display bg-slate-800 rounded-lg border border-slate-700 text-amber-400 font-bold text-xl";
+                numBox.className = "cell-display bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 text-amber-500 dark:text-amber-400 font-bold text-xl";
                 numBox.innerText = data.dividendStr[i];
                 dvdContainer.appendChild(numBox);
             }
             const dvdBadge = document.createElement('span');
-            dvdBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-sky-900/30 text-sky-300 border border-sky-500/30 font-semibold flex items-center";
-            dvdBadge.innerText = "← Dividend";
+            dvdBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-300 border border-sky-300 dark:border-sky-500/30 font-semibold flex items-center";
+            dvdBadge.innerText = "Dividend";
             dvdContainer.appendChild(dvdBadge);
             mainRow.appendChild(dvdContainer);
             container.appendChild(mainRow);
@@ -793,15 +1214,15 @@
                 const prodRow = document.createElement('div');
                 prodRow.className = "flex items-center space-x-2 mt-2";
                 const prodLabel = document.createElement('div');
-                prodLabel.className = "w-16 text-right font-sans text-xs font-bold text-purple-400 pr-1";
+                prodLabel.className = "w-16 text-right font-sans text-xs font-bold text-purple-500 dark:text-purple-400 pr-1";
                 prodLabel.innerText = "Subtract";
                 prodRow.appendChild(prodLabel);
                 const prodBracketSpacer = document.createElement('div');
-                prodBracketSpacer.className = "w-4 text-purple-400 font-bold text-center text-lg";
+                prodBracketSpacer.className = "w-4 text-purple-500 dark:text-purple-400 font-bold text-center text-lg";
                 prodBracketSpacer.innerText = "-";
                 prodRow.appendChild(prodBracketSpacer);
                 const prodGrid = document.createElement('div');
-                prodGrid.className = "flex space-x-2 pl-2 border-b-2 border-purple-500/50 pb-1";
+                prodGrid.className = "flex space-x-2 pl-2 border-b-2 border-purple-300 dark:border-purple-500/50 pb-1";
 
                 const prodStr = st.product.toString();
                 const totalCols = data.dividendStr.length;
@@ -816,16 +1237,14 @@
                         input.type = "text"; input.maxLength = 1;
                         input.id = `prod-${idx}-${charIdx}`;
                         input.dataset.expected = expectedChar;
-                        input.className = "grid-cell-input";
+                        input.className = "grid-cell-input bg-slate-100 dark:bg-slate-900/60 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-blue-500";
                         input.addEventListener('focus', () => focusedInputId = input.id);
                         input.addEventListener('input', (e) => handleInputEvent(e, input));
                         prodGrid.appendChild(makeCell(input));
-                    } else {
-                        prodGrid.appendChild(makeCell(""));
-                    }
+                    } else { prodGrid.appendChild(makeCell("")); }
                 }
                 const prodBadge = document.createElement('span');
-                prodBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-purple-900/30 text-purple-300 border border-purple-500/30 font-semibold flex items-center";
+                prodBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30 font-semibold flex items-center";
                 prodBadge.innerText = `Step ${idx + 1}`;
                 prodGrid.appendChild(prodBadge);
                 prodRow.appendChild(prodGrid);
@@ -835,12 +1254,12 @@
                     const remRow = document.createElement('div');
                     remRow.className = "flex items-center space-x-2 mt-1";
                     const remLabel = document.createElement('div');
-                    remLabel.className = "w-16 text-right font-sans text-xs font-bold text-indigo-400 pr-1";
+                    remLabel.className = "w-16 text-right font-sans text-xs font-bold text-indigo-500 dark:text-indigo-400 pr-1";
                     remLabel.innerText = "Bring Down";
                     remRow.appendChild(remLabel);
                     const remSpacer = document.createElement('div');
-                    remSpacer.className = "w-4 text-indigo-400 font-bold text-center text-lg";
-                    remSpacer.innerText = "↓";
+                    remSpacer.className = "w-4 text-indigo-500 dark:text-indigo-400 font-bold text-center text-lg";
+                    remSpacer.innerText = "v";
                     remRow.appendChild(remSpacer);
                     const remGrid = document.createElement('div');
                     remGrid.className = "flex space-x-2 pl-2";
@@ -857,29 +1276,27 @@
                             input.type = "text"; input.maxLength = 1;
                             input.id = `rem-${idx}-${charIdx}`;
                             input.dataset.expected = expectedChar;
-                            input.className = "grid-cell-input";
+                            input.className = "grid-cell-input bg-slate-100 dark:bg-slate-900/60 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-blue-500";
                             input.addEventListener('focus', () => focusedInputId = input.id);
                             input.addEventListener('input', (e) => handleInputEvent(e, input));
                             remGrid.appendChild(makeCell(input));
-                        } else {
-                            remGrid.appendChild(makeCell(""));
-                        }
+                        } else { remGrid.appendChild(makeCell("")); }
                     }
                     const remBadge = document.createElement('span');
-                    remBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-indigo-900/30 text-indigo-300 border border-indigo-500/30 font-semibold flex items-center";
+                    remBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-500/30 font-semibold flex items-center";
                     remBadge.innerText = "Bring Down";
                     remGrid.appendChild(remBadge);
                     remRow.appendChild(remGrid);
                     container.appendChild(remRow);
                 } else {
                     const finalRow = document.createElement('div');
-                    finalRow.className = "flex items-center space-x-2 mt-2 pt-1 border-t-2 border-rose-500/50";
+                    finalRow.className = "flex items-center space-x-2 mt-2 pt-1 border-t-2 border-rose-300 dark:border-rose-500/50";
                     const finalLabel = document.createElement('div');
-                    finalLabel.className = "w-16 text-right font-sans text-xs font-bold text-rose-400 pr-1";
+                    finalLabel.className = "w-16 text-right font-sans text-xs font-bold text-rose-500 dark:text-rose-400 pr-1";
                     finalLabel.innerText = "Remainder";
                     finalRow.appendChild(finalLabel);
                     const finalSpacer = document.createElement('div');
-                    finalSpacer.className = "w-4 text-rose-400 font-bold text-center text-lg";
+                    finalSpacer.className = "w-4 text-rose-500 dark:text-rose-400 font-bold text-center text-lg";
                     finalSpacer.innerText = "=";
                     finalRow.appendChild(finalSpacer);
                     const finalGrid = document.createElement('div');
@@ -897,16 +1314,14 @@
                             input.type = "text"; input.maxLength = 1;
                             input.id = `finalrem-${charIdx}`;
                             input.dataset.expected = expectedChar;
-                            input.className = "grid-cell-input";
+                            input.className = "grid-cell-input bg-slate-100 dark:bg-slate-900/60 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-blue-500";
                             input.addEventListener('focus', () => focusedInputId = input.id);
                             input.addEventListener('input', (e) => handleInputEvent(e, input));
                             finalGrid.appendChild(makeCell(input));
-                        } else {
-                            finalGrid.appendChild(makeCell(""));
-                        }
+                        } else { finalGrid.appendChild(makeCell("")); }
                     }
                     const finalBadge = document.createElement('span');
-                    finalBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-rose-900/30 text-rose-300 border border-rose-500/30 font-semibold flex items-center";
+                    finalBadge.className = "ml-3 text-xs font-sans px-2.5 py-1 rounded-md bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 font-semibold flex items-center";
                     finalBadge.innerText = "Remainder";
                     finalGrid.appendChild(finalBadge);
                     finalRow.appendChild(finalGrid);
@@ -935,9 +1350,8 @@
         function pressKey(key) {
             playTone('click');
             let targetInput = null;
-            if (focusedInputId) {
-                targetInput = document.getElementById(focusedInputId);
-            } else {
+            if (focusedInputId) { targetInput = document.getElementById(focusedInputId); } 
+            else {
                 const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
                 targetInput = inputs.find(i => i.value === "");
             }
@@ -966,23 +1380,13 @@
         }
 
         document.addEventListener('keydown', (e) => {
-            // Auto-submit 2FA if 6 digits typed
-            if (e.target.id === '2fa-input' && e.target.value.length === 6 && /^\d+$/.test(e.target.value)) {
-                e.preventDefault();
-                verify2FA();
-                return;
-            }
-
+            if (e.target.id === '2fa-input' && e.target.value.length === 6 && /^\d+$/.test(e.target.value)) { e.preventDefault(); verify2FA(); return; }
+            if (e.target.id === 'chat-input' && e.key === 'Enter') { e.preventDefault(); sendChatMessage(); return; }
             if (e.target.tagName === 'INPUT' && !e.target.classList.contains('grid-cell-input') && e.target.id !== '2fa-input' && e.target.id !== 'chat-input') return;
-            
-            if (e.target.id === '2fa-input' && e.key === 'Enter') {
-                e.preventDefault(); verify2FA(); return;
-            }
-
+            if (e.target.id === '2fa-input' && e.key === 'Enter') { e.preventDefault(); verify2FA(); return; }
             if (e.target.tagName === 'INPUT' && !e.target.classList.contains('grid-cell-input')) return;
-            if (e.key === 'Enter') {
-                e.preventDefault(); handlePrimaryAction();
-            } else if (e.key === 'Backspace') {
+            if (e.key === 'Enter') { e.preventDefault(); handlePrimaryAction(); } // Enter to Submit
+            else if (e.key === 'Backspace') {
                 if (document.activeElement && document.activeElement.classList.contains('grid-cell-input')) {
                     if (document.activeElement.value === "") { e.preventDefault(); pressKey('Backspace'); }
                 }
@@ -1004,43 +1408,59 @@
             inputs.forEach(input => {
                 const val = input.value.trim();
                 const expected = input.dataset.expected;
-                if (val === "") {
-                    allFilled = false; allCorrect = false;
-                    input.classList.remove('correct', 'incorrect');
-                } else if (val === expected) {
-                    input.classList.add('correct');
-                    input.classList.remove('incorrect', 'hint-highlight');
-                } else {
-                    allCorrect = false;
-                    input.classList.add('incorrect');
-                    input.classList.remove('correct', 'hint-highlight');
-                }
+                if (val === "") { allFilled = false; allCorrect = false; input.classList.remove('correct', 'incorrect'); } 
+                else if (val === expected) { input.classList.add('correct'); input.classList.remove('incorrect', 'hint-highlight'); } 
+                else { allCorrect = false; input.classList.add('incorrect'); input.classList.remove('correct', 'hint-highlight'); }
             });
 
             const banner = document.getElementById('feedback-banner');
-            banner.classList.remove('hidden', 'bg-emerald-900/40', 'border-emerald-500/50', 'text-emerald-300', 'bg-rose-900/40', 'border-rose-500/50', 'text-rose-300', 'bg-amber-900/40', 'border-amber-500/50', 'text-amber-300');
+            banner.classList.remove('hidden', 'bg-emerald-100', 'border-emerald-300', 'text-emerald-600', 'bg-rose-100', 'border-rose-300', 'text-rose-600', 'bg-amber-100', 'border-amber-300', 'text-amber-600', 'dark:bg-emerald-900/40', 'dark:border-emerald-500/50', 'dark:text-emerald-300', 'dark:bg-rose-900/40', 'dark:border-rose-500/50', 'dark:text-rose-300', 'dark:bg-amber-900/40', 'dark:border-amber-500/50', 'dark:text-amber-300');
 
             if (allCorrect) {
                 isProblemSolved = true;
-                score += 10;
+                
+                // Streak Logic & Multiplier
+                streak++;
+                let pointsAwarded = 10;
+                if (streak >= 3) pointsAwarded = 15; // 1.5x multiplier
+                score += pointsAwarded;
+
                 updateHeaderUI();
                 questionHistory[currentQuestionIndex - 1].solvedCleanly = true;
+                questionHistory[currentQuestionIndex - 1].timeTaken = (Date.now() - questionStartTime) / 1000; 
                 playTone('win');
-                banner.classList.add('bg-emerald-900/40', 'border-emerald-500/50', 'text-emerald-300');
-                if (currentQuestionIndex < TOTAL_QUESTIONS) banner.innerText = "🎉 Excellent Work! All digits are correct! Click 'Next Question' to continue.";
-                else banner.innerText = "🎉 Fantastic! You completed the final problem! Click 'Finish Session' to view results.";
-                
+                banner.classList.add('bg-emerald-100', 'border-emerald-300', 'text-emerald-600', 'dark:bg-emerald-900/40', 'dark:border-emerald-500/50', 'dark:text-emerald-300');
+                if (currentQuestionIndex < TOTAL_QUESTIONS) {
+                    banner.innerText = streak >= 3 ? `Excellent! Streak x${streak}! +${pointsAwarded} Points! Click 'Next Question' to continue.` : `Excellent Work! All digits are correct! Click 'Next Question' to continue.`;
+                } else {
+                    banner.innerText = `Fantastic! You completed the final problem! Click 'Finish Session' to view results.`;
+                }
                 const submitBtn = document.getElementById('main-submit-btn');
                 submitBtn.className = "px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2";
-                submitBtn.innerText = currentQuestionIndex < TOTAL_QUESTIONS ? "➡️ Next Question" : "🏁 Finish Session";
+                submitBtn.innerText = currentQuestionIndex < TOTAL_QUESTIONS ? "Next Question ->" : "Finish Session";
+
+                if (currentUserEmail) {
+                    const user = mockDatabase[currentUserEmail];
+                    user.totalPoints = (user.totalPoints || 0) + pointsAwarded;
+                    user.totalSolved = (user.totalSolved || 0) + 1;
+                    user.attempts = (user.attempts || 0) + 1;
+                    saveDatabase();
+                }
             } else {
                 playTone('wrong');
+                streak = 0; // Reset streak on failure
+                updateHeaderUI();
                 const boardCard = document.getElementById('main-board-card');
                 boardCard.classList.add('shake');
                 setTimeout(() => boardCard.classList.remove('shake'), 400);
-                banner.classList.add('bg-rose-900/40', 'border-rose-500/50', 'text-rose-300');
-                if (!allFilled) banner.innerText = "⚠️ Some cells are missing! Please fill in all blank boxes.";
-                else banner.innerText = "❌ Some digits are incorrect. Check highlighted red boxes and try again!";
+                banner.classList.add('bg-rose-100', 'border-rose-300', 'text-rose-600', 'dark:bg-rose-900/40', 'dark:border-rose-500/50', 'dark:text-rose-300');
+                if (!allFilled) banner.innerText = "Warning: Some cells are missing! Please fill in all blank boxes.";
+                else banner.innerText = "Error: Some digits are incorrect. Check highlighted red boxes and try again!";
+                if (currentUserEmail) {
+                    const user = mockDatabase[currentUserEmail];
+                    user.attempts = (user.attempts || 0) + 1;
+                    saveDatabase();
+                }
             }
         }
 
@@ -1053,9 +1473,7 @@
             if (currentQuestionIndex < TOTAL_QUESTIONS) {
                 currentQuestionIndex++;
                 loadQuestionForIndex(currentQuestionIndex);
-            } else {
-                showEndSummaryScreen();
-            }
+            } else { showEndSummaryScreen(); }
         }
 
         function giveHint() {
@@ -1067,75 +1485,63 @@
                 emptyOrWrong.classList.add('hint-highlight');
                 playTone('click');
                 const banner = document.getElementById('feedback-banner');
-                banner.classList.remove('hidden', 'bg-emerald-900/40', 'border-emerald-500/50', 'text-emerald-300', 'bg-rose-900/40', 'border-rose-500/50', 'text-rose-300');
-                banner.classList.add('bg-amber-900/40', 'border-amber-500/50', 'text-amber-300');
-                banner.innerText = `💡 Hint: The highlighted box needs digit ${emptyOrWrong.dataset.expected}.`;
+                banner.classList.remove('hidden', 'bg-emerald-100', 'border-emerald-300', 'text-emerald-600', 'bg-rose-100', 'border-rose-300', 'text-rose-600', 'dark:bg-emerald-900/40', 'dark:border-emerald-500/50', 'dark:text-emerald-300', 'dark:bg-rose-900/40', 'dark:border-rose-500/50', 'dark:text-rose-300');
+                banner.classList.add('bg-amber-100', 'border-amber-300', 'text-amber-600', 'dark:bg-amber-900/40', 'dark:border-amber-500/50', 'dark:text-amber-300');
+                banner.innerText = `Hint: The highlighted box needs digit ${emptyOrWrong.dataset.expected}.`;
+                streak = 0; // Reset streak on hint
+                updateHeaderUI();
             }
         }
 
-        // --- TUTOR CHAT LOGIC ---
         function sendChatMessage() {
             const input = document.getElementById('chat-input');
             const msg = input.value.trim();
             if (!msg) return;
-
             const container = document.getElementById('chat-container');
-            // User Message
-            container.innerHTML += `<div class="text-right text-sky-300"><span class="bg-sky-900/50 px-2 py-1 rounded-lg inline-block">${msg}</span></div>`;
+            container.innerHTML += `<div class="text-right text-sky-600 dark:text-sky-300"><span class="bg-sky-100 dark:bg-sky-900/50 px-2 py-1 rounded-lg inline-block">${msg}</span></div>`;
             input.value = '';
             container.scrollTop = container.scrollHeight;
+            
+            // Show Typing Indicator
+            container.innerHTML += `<div id="typing-indicator" class="text-left text-slate-700 dark:text-slate-300"><span class="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-lg inline-block">Tutor is typing...</span></div>`;
+            container.scrollTop = container.scrollHeight;
 
-            // Tutor Reply
             setTimeout(() => {
+                document.getElementById('typing-indicator')?.remove();
                 const reply = getTutorReply(msg);
-                container.innerHTML += `<div class="text-left text-slate-300"><span class="bg-slate-700 px-2 py-1 rounded-lg inline-block">🧠 ${reply}</span></div>`;
+                container.innerHTML += `<div class="text-left text-slate-700 dark:text-slate-300"><span class="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded-lg inline-block">Tutor: ${reply}</span></div>`;
                 container.scrollTop = container.scrollHeight;
-            }, 500);
+            }, 800);
         }
 
         function getTutorReply(message) {
-            const msg = message.toLowerCase();
-            const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
-            const firstEmpty = inputs.find(i => i.value === "");
-            
-            // If the problem is already solved
-            if (isProblemSolved) {
-                return "Great job! You already solved this problem. Click 'Next Question' to continue!";
-            }
-            
-            // General queries
-            if (msg.includes('quotient') || msg.includes('top')) {
-                return "The quotient is the answer to the division. It goes on top. Ask yourself: how many times does the divisor fit into the working number?";
-            }
-            if (msg.includes('subtract')) {
-                return "After you put a number on top, you multiply it by the divisor. You write that product below, and subtract it from the number above it.";
-            }
-            if (msg.includes('bring down')) {
-                return "After subtracting, you bring down the very next digit from the dividend to sit next to your subtraction answer.";
-            }
-            if (msg.includes('remainder')) {
-                return "The remainder is whatever is left over after your very last subtraction. It goes at the very bottom.";
+            if (difficulty === 'custom') {
+                return "I cannot help with assigned homework. You need to figure this out yourself! Good luck!";
             }
 
-            // Step specific queries
-            if (msg.includes('start') || msg.includes('first') || msg.includes('stuck')) {
+            // Smart NLP: clean punctuation and lowercase
+            const msg = message.toLowerCase().replace(/[^\w\s]/g, "");
+            const inputs = Array.from(document.querySelectorAll('.grid-cell-input'));
+            const firstEmpty = inputs.find(i => i.value === "");
+            if (isProblemSolved) return "Great job! You already solved this problem. Click 'Next Question' to continue!";
+            
+            // Smart keyword matching
+            if (msg.includes('quotient') || msg.includes('top number') || msg.includes('answer')) return "The quotient is the answer to the division. It goes on top. Ask yourself: how many times does the divisor fit into the working number?";
+            if (msg.includes('subtract') || msg.includes('minus') || msg.includes('take away')) return "After you put a number on top, you multiply it by the divisor. You write that product below, and subtract it from the number above it.";
+            if (msg.includes('bring down') || msg.includes('drop down') || msg.includes('next digit')) return "After subtracting, you bring down the very next digit from the dividend to sit next to your subtraction answer.";
+            if (msg.includes('remainder') || msg.includes('left over') || msg.includes('extra')) return "The remainder is whatever is left over after your very last subtraction. It goes at the very bottom.";
+            
+            if (msg.includes('start') || msg.includes('first') || msg.includes('stuck') || msg.includes('help') || msg.includes('dont get') || msg.includes("don't get")) {
                 if (firstEmpty) {
                     firstEmpty.focus();
                     const id = firstEmpty.id;
-                    if (id.startsWith('q-')) {
-                        return "Look at the dividend (the number inside the bracket). Take the first digit (or first two digits if it's smaller than the divisor). How many times does the divisor go into that number without going over?";
-                    } else if (id.startsWith('prod-')) {
-                        return "You just wrote a number on top! Now, multiply that number by the divisor (the number on the left) to get this number.";
-                    } else if (id.startsWith('rem-')) {
-                        return "Subtract the bottom number from the number right above it. Then, bring down the next single digit from the dividend to sit next to your answer.";
-                    } else if (id.startsWith('finalrem-')) {
-                        return "Subtract the bottom number from the number above it. Whatever is left is your final remainder!";
-                    }
+                    if (id.startsWith('q-')) return "Look at the dividend (the number inside the bracket). Take the first digit (or first two digits if it's smaller than the divisor). How many times does the divisor go into that number without going over?";
+                    if (id.startsWith('prod-')) return "You just wrote a number on top! Now, multiply that number by the divisor (the number on the left) to get this number.";
+                    if (id.startsWith('rem-')) return "Subtract the bottom number from the number right above it. Then, bring down the next single digit from the dividend to sit next to your answer.";
+                    if (id.startsWith('finalrem-')) return "Subtract the bottom number from the number above it. Whatever is left is your final remainder!";
                 }
                 return "It looks like all boxes are filled! Click 'Submit All Steps' to check your work.";
             }
-
-            // Default response
             return "I can help with steps! Ask me things like 'How do I start?', 'What does subtract mean?', or 'How do I find the quotient?'";
         }
 
@@ -1147,18 +1553,26 @@
                 input.classList.remove('incorrect', 'hint-highlight');
             });
             isProblemSolved = true;
+            streak = 0; // Reset streak on reveal
+            updateHeaderUI();
             const banner = document.getElementById('feedback-banner');
-            banner.classList.remove('hidden', 'bg-rose-900/40', 'border-rose-500/50', 'text-rose-300', 'bg-amber-900/40', 'border-amber-500/50', 'text-amber-300');
-            banner.classList.add('bg-emerald-900/40', 'border-emerald-500/50', 'text-emerald-300');
-            banner.innerText = "👁️ Solution revealed! Press 'Next' to continue.";
+            banner.classList.remove('hidden', 'bg-rose-100', 'border-rose-300', 'text-rose-600', 'bg-amber-100', 'border-amber-300', 'text-amber-600', 'dark:bg-rose-900/40', 'dark:border-rose-500/50', 'dark:text-rose-300', 'dark:bg-amber-900/40', 'dark:border-amber-500/50', 'dark:text-amber-300');
+            banner.classList.add('bg-emerald-100', 'border-emerald-300', 'text-emerald-600', 'dark:bg-emerald-900/40', 'dark:border-emerald-500/50', 'dark:text-emerald-300');
+            banner.innerText = "Solution revealed! Press 'Next' to continue.";
             const submitBtn = document.getElementById('main-submit-btn');
             submitBtn.className = "px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center gap-2";
-            submitBtn.innerText = currentQuestionIndex < TOTAL_QUESTIONS ? "➡️ Next Question" : "🏁 Finish Session";
+            submitBtn.innerText = currentQuestionIndex < TOTAL_QUESTIONS ? "Next Question ->" : "Finish Session";
+            if (currentUserEmail) {
+                const user = mockDatabase[currentUserEmail];
+                user.attempts = (user.attempts || 0) + 1;
+                saveDatabase();
+            }
         }
 
         function updateHeaderUI() {
             document.getElementById('q-counter-display').innerText = `${currentQuestionIndex} / ${TOTAL_QUESTIONS}`;
             document.getElementById('score-display').innerText = score;
+            document.getElementById('streak-display').innerText = streak;
             const pct = (currentQuestionIndex / TOTAL_QUESTIONS) * 100;
             document.getElementById('progress-bar-fill').style.width = `${pct}%`;
         }
@@ -1168,11 +1582,7 @@
             if (!questionHistory[index - 1]) {
                 generateProblemValues();
                 const qCalculated = calculateLongDivisionSteps(divisor, dividend);
-                questionHistory[index - 1] = {
-                    index: index, divisor: divisor, dividend: dividend,
-                    quotient: Math.floor(dividend / divisor), remainder: dividend % divisor,
-                    calcData: qCalculated, solvedCleanly: false
-                };
+                questionHistory[index - 1] = { index: index, divisor: divisor, dividend: dividend, quotient: Math.floor(dividend / divisor), remainder: dividend % divisor, calcData: qCalculated, solvedCleanly: false, timeTaken: 0 };
             } else {
                 const qObj = questionHistory[index - 1];
                 divisor = qObj.divisor; dividend = qObj.dividend;
@@ -1180,19 +1590,19 @@
             document.getElementById('feedback-banner').classList.add('hidden');
             const submitBtn = document.getElementById('main-submit-btn');
             submitBtn.className = "px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center gap-2";
-            submitBtn.innerText = "✓ Submit All Steps";
-            
-            // Clear chat on new question
-            document.getElementById('chat-container').innerHTML = '<div class="text-slate-400 text-xs italic">Tutor: Hi! Stuck on a step? Ask me a question like "How do I start?" or "What does subtract mean?".</div>';
-            
+            submitBtn.innerText = "Submit All Steps";
+            document.getElementById('chat-container').innerHTML = '<div class="text-slate-500 dark:text-slate-400 text-xs italic">Tutor: Hi! Stuck on a step? Ask me a question like "How do I start?" or "What does subtract mean?".</div>';
             updateHeaderUI();
             renderAllStepsBoard();
+            questionStartTime = Date.now(); 
         }
 
         function restartSession() {
             currentQuestionIndex = 1;
             score = 0;
+            streak = 0;
             questionHistory = [];
+            sessionStartTime = Date.now();
             document.getElementById('practice-workspace').classList.remove('hidden');
             document.getElementById('controls-bar').classList.remove('hidden');
             document.getElementById('end-summary-card').classList.add('hidden');
@@ -1208,8 +1618,96 @@
             document.getElementById('final-score-val').innerText = score;
             document.getElementById('final-solved-val').innerText = `${cleanlySolvedCount} / ${TOTAL_QUESTIONS}`;
             document.getElementById('final-accuracy-val').innerText = `${accuracyPct}%`;
+            
+            drawSessionGraph();
+            checkBadges(cleanlySolvedCount);
+            
+            if (currentUserEmail && difficulty === 'custom' && currentHomework) {
+                const user = mockDatabase[currentUserEmail];
+                if (!user.homeworkResults) user.homeworkResults = {};
+                user.homeworkResults[currentHomework.id] = { score: score, accuracy: accuracyPct };
+                saveDatabase();
+            }
+
             triggerCelebrationParticles();
             playTone('win');
+        }
+
+        function drawSessionGraph() {
+            const canvas = document.getElementById('session-graph');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth * 2; 
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+            
+            const w = canvas.offsetWidth;
+            const h = canvas.offsetHeight;
+            ctx.clearRect(0, 0, w, h);
+
+            const times = questionHistory.map(q => q.timeTaken || 0);
+            const maxTime = Math.max(...times, 10);
+            const barWidth = (w - 20) / TOTAL_QUESTIONS;
+
+            ctx.fillStyle = '#3b82f6'; 
+            times.forEach((t, i) => {
+                const barHeight = (t / maxTime) * (h - 20);
+                const x = 10 + i * barWidth;
+                const y = h - 10 - barHeight;
+                ctx.fillRect(x, y, barWidth - 4, barHeight);
+            });
+        }
+
+        function checkBadges(cleanlySolvedCount) {
+            if (!currentUserEmail) return;
+            const user = mockDatabase[currentUserEmail];
+            if (!user.badges) user.badges = [];
+
+            const totalTime = (Date.now() - sessionStartTime) / 1000;
+            let newBadges = false;
+
+            if (cleanlySolvedCount === TOTAL_QUESTIONS && !user.badges.find(b => b.name === 'Perfect 10')) {
+                user.badges.push({ name: 'Perfect 10' });
+                newBadges = true;
+            }
+            if (cleanlySolvedCount === TOTAL_QUESTIONS && totalTime < (15 * TOTAL_QUESTIONS) && !user.badges.find(b => b.name === 'Speed Demon')) {
+                user.badges.push({ name: 'Speed Demon' });
+                newBadges = true;
+            }
+            if (cleanlySolvedCount >= 5 && (difficulty === 'hard') && !user.badges.find(b => b.name === 'Remainder Master')) {
+                user.badges.push({ name: 'Remainder Master' });
+                newBadges = true;
+            }
+
+            if (newBadges) {
+                saveDatabase();
+                setTimeout(() => alert("Congratulations! You earned a new achievement badge!"), 1000);
+            }
+        }
+
+        function exportSessionToCSV() {
+            let csvContent = "Question,Divisor,Dividend,Quotient,Remainder,Time (s),Solved Cleanly\n";
+            questionHistory.forEach((q, idx) => {
+                const row = [
+                    `Q${idx + 1}`,
+                    q.divisor,
+                    q.dividend,
+                    q.quotient,
+                    q.remainder,
+                    (q.timeTaken || 0).toFixed(2),
+                    q.solvedCleanly ? "Yes" : "No"
+                ].join(",");
+                csvContent += row + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Math_Session_${new Date().getTime()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function openAnswersModal() {
@@ -1217,24 +1715,24 @@
             container.innerHTML = '';
             questionHistory.forEach((q, idx) => {
                 const qCard = document.createElement('div');
-                qCard.className = "bg-slate-900/90 border border-slate-700/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
+                qCard.className = "bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3";
                 const qLeft = document.createElement('div');
                 qLeft.className = "space-y-1";
                 const title = document.createElement('div');
-                title.className = "font-extrabold text-white text-base flex items-center gap-2";
-                title.innerHTML = `<span class="text-xs text-slate-400 font-mono">Q${idx + 1}.</span> ${q.divisor} ) ${q.dividend}`;
+                title.className = "font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2";
+                title.innerHTML = `<span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Q${idx + 1}.</span> ${q.divisor} ) ${q.dividend}`;
                 qLeft.appendChild(title);
                 const details = document.createElement('div');
-                details.className = "text-xs text-slate-300 font-mono space-x-3";
-                details.innerHTML = `<span class="text-emerald-400">Quotient: <b>${q.quotient}</b></span> | <span class="text-rose-400">Remainder: <b>${q.remainder}</b></span>`;
+                details.className = "text-xs text-slate-600 dark:text-slate-300 font-mono space-x-3";
+                details.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400">Quotient: <b>${q.quotient}</b></span> | <span class="text-rose-600 dark:text-rose-400">Remainder: <b>${q.remainder}</b></span>`;
                 qLeft.appendChild(details);
                 const statusBadge = document.createElement('span');
                 if (q.solvedCleanly) {
-                    statusBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-500/30";
-                    statusBadge.innerText = "✓ Solved";
+                    statusBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30";
+                    statusBadge.innerText = "Solved";
                 } else {
-                    statusBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-900/40 text-amber-300 border border-amber-500/30";
-                    statusBadge.innerText = "👁️ Answer Shown";
+                    statusBadge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30";
+                    statusBadge.innerText = "Answer Shown";
                 }
                 qCard.appendChild(qLeft);
                 qCard.appendChild(statusBadge);
@@ -1243,9 +1741,7 @@
             document.getElementById('answers-modal').classList.remove('hidden');
         }
 
-        function closeAnswersModal() {
-            document.getElementById('answers-modal').classList.add('hidden');
-        }
+        function closeAnswersModal() { document.getElementById('answers-modal').classList.add('hidden'); }
 
         function triggerCelebrationParticles() {
             const canvas = document.getElementById('celebration-canvas');
@@ -1254,16 +1750,9 @@
             canvas.height = window.innerHeight;
             const particles = [];
             const colors = ['#34d399', '#60a5fa', '#f59e0b', '#ec4899', '#a78bfa', '#f43f5e'];
-
             for (let i = 0; i < 110; i++) {
-                particles.push({
-                    x: canvas.width / 2, y: canvas.height * 0.4,
-                    vx: (Math.random() - 0.5) * 18, vy: (Math.random() - 0.75) * 18,
-                    size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)],
-                    alpha: 1, decay: Math.random() * 0.015 + 0.01
-                });
+                particles.push({ x: canvas.width / 2, y: canvas.height * 0.4, vx: (Math.random() - 0.5) * 18, vy: (Math.random() - 0.75) * 18, size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)], alpha: 1, decay: Math.random() * 0.015 + 0.01 });
             }
-
             function animateParticles() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 let alive = false;
@@ -1281,13 +1770,12 @@
             animateParticles();
         }
 
-        // Initialize App on load
         window.onload = function() {
+            loadTheme();
             loadDatabase(); 
+            loadHomework();
             
-            if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
-                document.getElementById('test-helper-box').classList.remove('hidden');
-            }
+            document.getElementById('test-helper-box').classList.remove('hidden');
             
             switchAuthTab('login'); 
             showView('auth-view');
