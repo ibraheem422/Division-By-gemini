@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- PWA Manifest Embed -->
-<link rel="manifest" href='data:application/manifest+json,{"name":"Math Challenge","short_name":"MathApp","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#3b82f6","icons":[{"src":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Google%22G%22Logo.svg/512px-Google%22G%22Logo.svg.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Google%22G%22Logo.svg/512px-Google%22G%22Logo.svg.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}'>
+    <!-- Valid PWA Manifest with 192x192 and 512x512 PNG Icons -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Math Challenge","short_name":"MathApp","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#3b82f6","icons":[{"src":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Google%22G%22Logo.svg/512px-Google%22G%22Logo.svg.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Google%22G%22Logo.svg/512px-Google%22G%22Logo.svg.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}'>
     <meta name="theme-color" content="#0f172a">
     <title>Long Division Practice App</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -111,8 +111,8 @@
             <div class="flex items-center gap-3 flex-wrap">
                 <button onclick="toggleTheme()" id="theme-btn" class="p-2 bg-slate-200 dark:bg-slate-700/60 hover:bg-slate-300 dark:hover:bg-slate-600/80 rounded-xl transition border border-slate-300 dark:border-slate-600/50 text-sm font-semibold" title="Toggle Theme">Theme</button>
                 
-                <!-- PWA Install Button -->
-               <button id="install-btn" class="inline-flex px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl transition shadow-md items-center gap-1">Install App</button>
+                <!-- PWA Install Button (Changed ID to prevent caching issues) -->
+                <button id="install-app-btn" class="inline-flex px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl transition shadow-md items-center gap-1">Install App</button>
                 
                 <button onclick="openProfileModal()" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white font-semibold text-xs rounded-xl transition shadow-md flex items-center gap-1">Edit Profile</button>
                 <button onclick="openLeaderboardModal()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white font-semibold text-xs rounded-xl transition shadow-md flex items-center gap-1">Leaderboard</button>
@@ -424,44 +424,53 @@
     </div>
 
     <script>
-                // PWA Install Logic
+        // ==========================================
+        // PWA Install Logic (Updated to listen for the new button ID)
+        // ==========================================
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            const installBtn = document.getElementById('install-btn');
+            const installBtn = document.getElementById('install-app-btn');
             if (installBtn) installBtn.classList.remove('hidden');
         });
 
-              // ADDED: Direct click listener for the Install button
-        document.getElementById('install-btn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                document.getElementById('install-btn').classList.add('hidden');
-            } else {
-                // Fallback message for unsupported browsers or local file testing
-                const isLocal = window.location.protocol === 'file:';
-                const isChrome = window.navigator.userAgent.includes("Chrome") || window.navigator.userAgent.includes("Edge");
-                if (isLocal) {
-                    alert('App installation requires a live web server (HTTPS). Please deploy to Vercel to install!');
-                } else if (!isChrome) {
-                    alert('PWA Installation is only supported on Chrome or Edge browsers.');
-                } else {
-                    alert('To install the app, click the icon on the right side of your browser address bar.');
-                }
+        document.addEventListener('DOMContentLoaded', () => {
+            const installBtn = document.getElementById('install-app-btn');
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        // Official PWA Install Prompt (Works on Vercel/HTTPS)
+                        deferredPrompt.prompt();
+                        await deferredPrompt.userChoice;
+                        deferredPrompt = null;
+                        installBtn.classList.add('hidden');
+                    } else {
+                        const isLocal = window.location.protocol === 'file:';
+                        if (isLocal) {
+                            // Fallback for Local File: Download a .URL shortcut to open as an app
+                            const shortcutContent = `[InternetShortcut]\nURL=${window.location.href}\nIconIndex=0`;
+                            const blob = new Blob([shortcutContent], { type: 'application/internet-shortcut' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'Math Challenge App.url';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            alert('App shortcut downloaded! Check your Downloads folder. Double-click the "Math Challenge App.url" file to launch the app in a standalone window.');
+                        } else {
+                            // Fallback for Live Site without Manifest Support
+                            alert('To install the app, click the install icon on the right side of your browser address bar.');
+                        }
+                    }
+                });
             }
         });
 
         window.addEventListener('appinstalled', () => {
-            const installBtn = document.getElementById('install-btn');
-            if (installBtn) installBtn.classList.add('hidden');
-            deferredPrompt = null;
-        });
-        window.addEventListener('appinstalled', () => {
-            const installBtn = document.getElementById('install-btn');
+            const installBtn = document.getElementById('install-app-btn');
             if (installBtn) installBtn.classList.add('hidden');
             deferredPrompt = null;
         });
